@@ -24,33 +24,10 @@ export default function PaymentForm() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          type: paymentType
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        alert('Erro: ' + JSON.stringify(data));
-        return;
-      }
-
-      // Trata resposta por tipo
-      if (paymentType === 'BOLETO') {
-        window.open(data.invoiceUrl, '_blank');
-        alert('Boleto gerado! Acesse o link');
-      } else if (paymentType === 'PIX') {
-        alert('Chave PIX: ' + data.dict.qrCode);
-        // Mostra QR code
-      } else if (paymentType === 'CREDIT_CARD') {
-        alert('Pagamento processado com sucesso!');
-      }
-
+      // Redireciona diretamente para o link de pagamento ASAAS
+      window.open('https://www.asaas.com/c/siak23mklgcai3yb', '_blank');
+      alert('Redirecionando para página de pagamento ASAAS...');
+      
       setFormData({ name: '', email: '', amount: '', cpf: '', phone: '' });
     } catch (error) {
       alert('Erro: ' + error.message);
