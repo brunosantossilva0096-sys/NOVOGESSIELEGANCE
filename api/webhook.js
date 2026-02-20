@@ -1,22 +1,34 @@
 export default async function handler(req, res) {
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Responde a OPTIONS (preflight)
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // Responde a GET também (para teste da Asaas)
+  if (req.method === 'GET') {
+    return res.status(200).json({ status: 'webhook ativo' });
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método não permitido' });
   }
 
   const { event, payment } = req.body;
 
-  console.log('Webhook recebido:', event);
+  console.log('Webhook recebido:', event, payment);
 
   try {
-    // Eventos: PAYMENT_CREATED, PAYMENT_CONFIRMED, PAYMENT_RECEIVED, etc
     if (event === 'PAYMENT_CONFIRMED') {
       console.log(`Pagamento confirmado: ${payment.id}`);
-      // Atualiza seu banco de dados, envia email, etc
     }
 
     if (event === 'PAYMENT_RECEIVED') {
       console.log(`Pagamento recebido: ${payment.id}`);
-      // Libera acesso ao produto/serviço
     }
 
     return res.status(200).json({ received: true });
