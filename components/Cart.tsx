@@ -378,16 +378,6 @@ export const Cart: React.FC<CartProps> = ({
               >
                 Cancelar
               </button>
-              <button
-                onClick={handleConfirmShipping}
-                className="flex-1 px-4 py-3 rounded-lg font-medium text-white transition-all"
-                style={{ 
-                  backgroundColor: theme.colors.primary[500],
-                  boxShadow: theme.shadows.pink
-                }}
-              >
-                Confirmar e Pagar
-              </button>
             </div>
 
             <div className="mt-4 pt-4 border-t">
