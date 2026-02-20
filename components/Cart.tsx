@@ -60,6 +60,55 @@ export const Cart: React.FC<CartProps> = ({
     onCheckout(shippingCost);
   };
 
+  const handleDirectPayment = async () => {
+    try {
+      // Criar pagamento via API Asaas diretamente do carrinho
+      const asaasToken = 'cb44adc0-3e19-4e11-b8e6-7c1a378642da';
+      
+      const paymentData = {
+        customer: 'Cliente GessiElegance',
+        email: 'cliente@gessielegance.com',
+        cpf: '00000000000',
+        phone: '00000000000',
+        value: total,
+        description: `Pedido GessiElegance - ${items.length} itens`,
+        externalReference: `cart-order-${Date.now()}`,
+        billingType: 'PIX',
+        dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        postalService: 'CORREIOS',
+        shippingCost: shippingCost,
+        shippingValue: shippingCost,
+        items: items.map(item => ({
+          description: item.name,
+          quantity: item.quantity,
+          priceCents: Math.round((item.promotionalPrice || item.price) * 100)
+        }))
+      };
+
+      const paymentResponse = await fetch('https://api.asaas.com/v3/payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'access_token': asaasToken
+        },
+        body: JSON.stringify(paymentData)
+      });
+
+      const payment = await paymentResponse.json();
+
+      if (paymentResponse.ok && payment.id) {
+        // Abrir link de pagamento em nova aba
+        window.open(payment.invoiceUrl, '_blank');
+        alert('Pagamento gerado com sucesso! Redirecionando para Asaas...');
+      } else {
+        alert('Erro ao criar pagamento: ' + (payment.errors?.[0]?.description || 'Tente novamente'));
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('Erro ao processar pagamento. Tente novamente.');
+    }
+  };
+
   if (items.length === 0) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-12">
@@ -385,7 +434,7 @@ export const Cart: React.FC<CartProps> = ({
                 💳 Após escolher a forma de pagamento, clique abaixo para acessar o Asaas:
               </p>
               <button
-                onClick={() => window.open('https://www.asaas.com/c/siak23mklgcai3yb', '_blank')}
+                onClick={handleDirectPayment}
                 className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

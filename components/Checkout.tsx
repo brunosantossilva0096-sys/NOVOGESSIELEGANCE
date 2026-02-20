@@ -38,69 +38,109 @@ export const Checkout: React.FC<CheckoutProps> = ({
     setIsProcessing(true);
 
     try {
-      // Redirecionar diretamente para o link de pagamento Asaas
-      const paymentLink = 'https://www.asaas.com/c/siak23mklgcai3yb';
+      // Criar pagamento via API Asaas
+      const asaasToken = 'cb44adc0-3e19-4e11-b8e6-7c1a378642da';
       
-      // Criar pedido local para registro
-      const orderResult = await orderService.createOrder({
-        userId: user.id,
-        userName: user.name,
-        userEmail: user.email,
-        userPhone: user.phone,
-        items: cart,
-        subtotal,
+      const paymentData = {
+        customer: user.name,
+        email: user.email,
+        cpf: user.cpf || '00000000000',
+        phone: user.phone || '00000000000',
+        value: total,
+        description: `Pedido GessiElegance - ${cart.length} itens`,
+        externalReference: `order-${Date.now()}`,
+        billingType: paymentMethod === PaymentMethod.PIX ? 'PIX' : 'BOLETO',
+        dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        postalService: 'CORREIOS',
         shippingCost: shippingCost,
-        discount: 0,
-        total,
-        paymentMethod,
-        shippingMethod: {
-          id: 'free-shipping',
-          name: 'A combinar com vendedor',
-          type: 'retirada',
-          cost: shippingCost,
-          estimatedDays: 'Imediato',
-          isActive: true,
+        shippingValue: shippingCost,
+        items: cart.map(item => ({
+          description: item.name,
+          quantity: item.quantity,
+          priceCents: Math.round((item.promotionalPrice || item.price) * 100)
+        }))
+      };
+
+      const paymentResponse = await fetch('https://api.asaas.com/v3/payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'access_token': asaasToken
         },
-        shippingAddress: {
-          id: 'default-address',
-          name: user.name,
-          street: 'Entrega Digital',
-          number: '-',
-          neighborhood: '-',
-          city: '-',
-          state: '-',
-          zip: '00000-000',
-          isDefault: false,
-        },
+        body: JSON.stringify(paymentData)
       });
 
-      if (orderResult.success && orderResult.order) {
-        // Abrir link de pagamento em nova aba
-        window.open(paymentLink, '_blank');
-        
-        setOrder(orderResult.order);
-        setStep('confirmation');
+      const payment = await paymentResponse.json();
 
-        // Enviar confirmação por email
-        emailService.sendOrderConfirmation({
-          orderNumber: orderResult.order.orderNumber,
-          customerName: user.name,
-          customerEmail: user.email,
-          orderTotal: total,
-          orderItems: cart.map(i => ({ name: i.name, quantity: i.quantity, price: i.promotionalPrice || i.price })),
-          orderStatus: 'Aguardando Pagamento',
-          paymentMethod: paymentMethod === PaymentMethod.PIX ? 'PIX' : paymentMethod === PaymentMethod.CREDIT_CARD ? 'Cartão de Crédito' : 'Cartão de Débito',
+      if (paymentResponse.ok && payment.id) {
+        // Criar pedido local para registro
+        const orderResult = await orderService.createOrder({
+          userId: user.id,
+          userName: user.name,
+          userEmail: user.email,
+          userPhone: user.phone,
+          items: cart,
+          subtotal,
+          shippingCost: shippingCost,
+          discount: 0,
+          total,
+          paymentMethod,
+          shippingMethod: {
+            id: 'free-shipping',
+            name: 'A combinar com vendedor',
+            type: 'retirada',
+            cost: shippingCost,
+            estimatedDays: 'Imediato',
+            isActive: true,
+          },
+          shippingAddress: {
+            id: 'default-address',
+            name: user.name,
+            street: 'Entrega Digital',
+            number: '-',
+            neighborhood: '-',
+            city: '-',
+            state: '-',
+            zip: '00000-000',
+            isDefault: false,
+          },
         });
 
-        // Notificação WhatsApp
-        whatsappService.sendOrderNotification(orderResult.order, false);
+        if (orderResult.success && orderResult.order) {
+          // Abrir link de pagamento em nova aba
+          window.open(payment.invoiceUrl, '_blank');
+          
+          // Atualizar status do pedido com ID do pagamento Asaas
+          await orderService.updatePaymentStatus(orderResult.order.id, PaymentStatus.PENDING, {
+            paymentId: payment.id,
+            paymentLink: payment.invoiceUrl,
+            paymentQrCode: payment.qrCode?.encodedImage
+          });
 
-        // Notificação WhatsApp para cliente
-        if (user.phone) {
-          whatsappService.sendCustomerNotification(orderResult.order, user.phone);
+          setOrder(orderResult.order);
+          setStep('confirmation');
+
+          // Enviar confirmação por email
+          emailService.sendOrderConfirmation({
+            orderNumber: orderResult.order.orderNumber,
+            customerName: user.name,
+            customerEmail: user.email,
+            orderTotal: total,
+            orderItems: cart.map(i => ({ name: i.name, quantity: i.quantity, price: i.promotionalPrice || i.price })),
+            orderStatus: 'Aguardando Pagamento',
+            paymentMethod: paymentMethod === PaymentMethod.PIX ? 'PIX' : paymentMethod === PaymentMethod.CREDIT_CARD ? 'Cartão de Crédito' : 'Cartão de Débito',
+          });
+
+          // Notificação WhatsApp
+          whatsappService.sendOrderNotification(orderResult.order, false);
+
+          // Notificação WhatsApp para cliente
+          if (user.phone) {
+            whatsappService.sendCustomerNotification(orderResult.order, user.phone);
+          }
         }
       } else {
-        alert('Erro ao criar pedido. Tente novamente.');
+        alert('Erro ao criar pagamento: ' + (payment.errors?.[0]?.description || 'Tente novamente'));
       }
     } catch (error) {
       console.error('Checkout error:', error);
@@ -108,6 +148,45 @@ export const Checkout: React.FC<CheckoutProps> = ({
     }
 
     setIsProcessing(false);
+  };
+
+  const handlePaymentAsaas = async () => {
+    try {
+      const asaasToken = 'cb44adc0-3e19-4e11-b8e6-7c1a378642da';
+      
+      const paymentData = {
+        customer: user.name,
+        email: user.email,
+        cpf: user.cpf || '00000000000',
+        phone: user.phone || '00000000000',
+        value: order?.total || total,
+        description: `Pedido GessiElegance - ${order?.orderNumber || 'CONFIRM'}`,
+        externalReference: `order-${order?.orderNumber || Date.now()}`,
+        billingType: 'PIX',
+        dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      };
+
+      const paymentResponse = await fetch('https://api.asaas.com/v3/payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'access_token': asaasToken
+        },
+        body: JSON.stringify(paymentData)
+      });
+
+      const payment = await paymentResponse.json();
+
+      if (paymentResponse.ok && payment.id) {
+        window.open(payment.invoiceUrl, '_blank');
+        alert('Pagamento gerado com sucesso! Redirecionando para Asaas...');
+      } else {
+        alert('Erro ao criar pagamento: ' + (payment.errors?.[0]?.description || 'Tente novamente'));
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('Erro ao processar pagamento. Tente novamente.');
+    }
   };
 
   const handlePrintReceipt = () => {
@@ -171,17 +250,17 @@ export const Checkout: React.FC<CheckoutProps> = ({
         )}
 
         <div className="bg-yellow-50 p-4 rounded-lg mb-6">
-          <h3 className="font-semibold mb-2">Link de Pagamento</h3>
-          <p className="text-sm text-gray-600 mb-3">
-            Clique no botão abaixo para acessar diretamente a página de pagamento Asaas:
-          </p>
-          <button
-            onClick={() => window.open('https://www.asaas.com/c/siak23mklgcai3yb', '_blank')}
-            className="w-full bg-yellow-600 text-white py-3 rounded-lg hover:bg-yellow-700 transition-colors font-medium"
-          >
-            Acessar Página de Pagamento
-          </button>
-        </div>
+              <h3 className="font-semibold mb-2">Link de Pagamento</h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Clique no botão abaixo para gerar um novo pagamento Asaas:
+              </p>
+              <button
+                onClick={handlePaymentAsaas}
+                className="w-full bg-yellow-600 text-white py-3 rounded-lg hover:bg-yellow-700 transition-colors font-medium"
+              >
+                Gerar Novo Pagamento
+              </button>
+            </div>
 
         <div className="flex gap-4">
           <button
