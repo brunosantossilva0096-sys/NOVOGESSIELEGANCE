@@ -1,16 +1,29 @@
 /**
  * AsaasService — Gateway de pagamento centralizado.
- * Em produção (Netlify), usa o proxy /.netlify/functions/asaas-proxy para evitar CORS.
- * Em desenvolvimento local, chama a API diretamente com o token (requer proxy local ou cors-anywhere).
+ *
+ * Roteamento por ambiente:
+ *  - localhost → /api/asaas/* (proxy Vite, configurado em vite.config.ts)
+ *  - produção Netlify → /.netlify/functions/asaas-proxy (função serverless)
+ *
+ * Em ambos os casos, o token é injetado no lado do servidor — nunca exposto no browser.
  */
 
 import { PaymentMethod, Order } from '../types';
 
-const IS_NETLIFY = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
-const PROXY_URL = '/.netlify/functions/asaas-proxy';
-// Fallback direto para dev — em produção o proxy já injeta o token
-const DIRECT_URL = 'https://api.asaas.com/v3';
-const API_TOKEN = 'cb44adc0-3e19-4e11-b8e6-7c1a378642da';
+const IS_PRODUCTION = typeof window !== 'undefined' && !window.location.hostname.includes('localhost');
+
+/**
+ * Retorna a URL base conforme o ambiente.
+ * DEV  → /api/asaas  (proxy Vite redireciona para api.asaas.com/v3 com token)
+ * PROD → /.netlify/functions/asaas-proxy?endpoint=...
+ */
+function buildUrl(endpoint: string): string {
+  if (IS_PRODUCTION) {
+    return `/.netlify/functions/asaas-proxy?endpoint=${encodeURIComponent(endpoint)}`;
+  }
+  // Proxy do Vite: /api/asaas/customers → api.asaas.com/v3/customers
+  return `/api/asaas${endpoint}`;
+}
 
 /* =========================================================
    Interfaces Asaas
@@ -83,21 +96,8 @@ export interface AsaasPaymentStatus {
    ========================================================= */
 class AsaasService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    let url: string;
-    let headers: HeadersInit;
-
-    if (IS_NETLIFY) {
-      // Usa o proxy Netlify em produção
-      url = `${PROXY_URL}?endpoint=${encodeURIComponent(endpoint)}`;
-      headers = { 'Content-Type': 'application/json' };
-    } else {
-      // Em dev local, chama diretamente (pode precisar de extensão CORS no browser ou proxy)
-      url = `${DIRECT_URL}${endpoint}`;
-      headers = {
-        'Content-Type': 'application/json',
-        'access_token': API_TOKEN,
-      };
-    }
+    const url = buildUrl(endpoint);
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
 
     const response = await fetch(url, { ...options, headers: { ...headers, ...options.headers } });
 
