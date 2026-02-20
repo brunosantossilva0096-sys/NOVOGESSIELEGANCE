@@ -15,17 +15,8 @@ export default function PaymentForm() {
     e.preventDefault();
     setLoading(true);
 
-    try {
-      // Redireciona diretamente para o link de pagamento ASAAS
-      window.open('https://www.asaas.com/c/siak23mklgcai3yb', '_blank');
-      alert('Redirecionando para página de pagamento ASAAS...');
-      
-      setFormData({ name: '', email: '' });
-    } catch (error) {
-      alert('Erro: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
+    // Redireciona diretamente para o link de pagamento ASAAS
+    window.location.href = 'https://www.asaas.com/c/siak23mklgcai3yb';
   };
 
   return (
