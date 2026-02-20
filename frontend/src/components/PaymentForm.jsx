@@ -1,8 +1,7 @@
 import { useState } from 'react';
 
 export default function PaymentForm() {
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState({
     name: '',
     email: ''
   });
@@ -11,10 +10,9 @@ export default function PaymentForm() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setLoading(true);
-
+    
     // Redireciona diretamente para o link de pagamento ASAAS
     window.location.href = 'https://www.asaas.com/c/siak23mklgcai3yb';
   };
@@ -46,8 +44,8 @@ export default function PaymentForm() {
         />
 
         
-        <button type="submit" disabled={loading} style={{ width: '100%', padding: '10px' }}>
-          {loading ? 'Processando...' : 'Pagar'}
+        <button type="submit" style={{ width: '100%', padding: '10px' }}>
+          Pagar
         </button>
       </form>
     </div>
