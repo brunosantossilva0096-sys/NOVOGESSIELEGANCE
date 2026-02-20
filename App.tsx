@@ -53,6 +53,7 @@ const App: React.FC = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
+  const [shippingCost, setShippingCost] = useState(0);
 
   // Initialize services
   useEffect(() => {
@@ -162,7 +163,7 @@ const App: React.FC = () => {
   const goToForgotPassword = () => setView('forgot-password');
   const goToStore = () => setView('store');
   const goToCart = () => setView('cart');
-  const goToCheckout = () => {
+  const goToCheckout = (shippingValue: number = 0) => {
     if (!user) {
       setView('login');
       return;
@@ -170,6 +171,7 @@ const App: React.FC = () => {
     if (cart.length === 0) {
       return;
     }
+    setShippingCost(shippingValue);
     setView('checkout');
   };
   const goToProfile = () => {
@@ -264,6 +266,7 @@ const App: React.FC = () => {
             user={user}
             cart={cart}
             storeConfig={storeConfig}
+            shippingCost={shippingCost}
             onSuccess={() => {
               clearCart();
               setView('store');

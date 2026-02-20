@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, Package, Truck, MapPin } from 'lucide-react';
-import type { CartItem, ShippingQuote } from '../types';
+import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, Package } from 'lucide-react';
+import type { CartItem } from '../types';
 import { theme } from '../theme';
-import { shippingService } from '../services';
 
 interface CartProps {
   items: CartItem[];
   onUpdateQuantity: (productId: string, quantity: number, size?: string, colorName?: string) => void;
   onRemove: (productId: string, size?: string, colorName?: string) => void;
-  onCheckout: () => void;
+  onCheckout: (shippingCost?: number) => void;
   onContinueShopping: () => void;
 }
 
@@ -19,63 +18,46 @@ export const Cart: React.FC<CartProps> = ({
   onCheckout,
   onContinueShopping,
 }) => {
-  const [cep, setCep] = useState('');
-  const [shippingQuotes, setShippingQuotes] = useState<ShippingQuote[]>([]);
-  const [selectedShipping, setSelectedShipping] = useState<ShippingQuote | null>(null);
-  const [isCalculating, setIsCalculating] = useState(false);
-  const [shippingError, setShippingError] = useState<string | null>(null);
+  const [showShippingModal, setShowShippingModal] = useState(false);
+  const [shippingCost, setShippingCost] = useState(0);
+  const [shippingInput, setShippingInput] = useState('');
+
   const subtotal = items.reduce((sum, item) => {
     const price = item.promotionalPrice || item.price;
     return sum + price * item.quantity;
   }, 0);
 
-  const total = subtotal + (selectedShipping?.cost || 0);
+  const total = subtotal + shippingCost;
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
-  const formatCep = (value: string) => {
-    const cleaned = value.replace(/\D/g, '');
-    if (cleaned.length <= 5) return cleaned;
-    return `${cleaned.slice(0, 5)}-${cleaned.slice(5, 8)}`;
+  const handleShippingInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '');
+    const numericValue = parseFloat(value) / 100;
+    setShippingInput(value);
+    setShippingCost(numericValue);
   };
 
-  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatCep(e.target.value);
-    if (formatted.length <= 9) {
-      setCep(formatted);
-      setShippingError(null);
-    }
+  const formatShippingInput = (value: string) => {
+    const numericValue = parseFloat(value) / 100;
+    if (isNaN(numericValue)) return '';
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2
+    }).format(numericValue);
   };
 
-  const calculateShipping = async () => {
-    const cleanCep = cep.replace(/\D/g, '');
-    if (cleanCep.length !== 8) {
-      setShippingError('CEP inválido');
-      return;
-    }
+  const handleProceedToPayment = () => {
+    setShowShippingModal(true);
+  };
 
-    setIsCalculating(true);
-    setShippingError(null);
-
-    try {
-      const result = await shippingService.calculateShipping(cleanCep, subtotal);
-      if (result.success && result.quotes.length > 0) {
-        setShippingQuotes(result.quotes);
-        setSelectedShipping(result.quotes[0]);
-      } else {
-        setShippingError(result.error || 'Não foi possível calcular o frete');
-        setShippingQuotes([]);
-        setSelectedShipping(null);
-      }
-    } catch (error) {
-      setShippingError('Erro ao calcular frete');
-      setShippingQuotes([]);
-      setSelectedShipping(null);
-    } finally {
-      setIsCalculating(false);
-    }
+  const handleConfirmShipping = () => {
+    setShowShippingModal(false);
+    // Passar o valor do frete para o checkout
+    onCheckout(shippingCost);
   };
 
   if (items.length === 0) {
@@ -237,81 +219,6 @@ export const Cart: React.FC<CartProps> = ({
           >
             <h2 className="font-bold text-lg mb-4" style={{ color: theme.colors.neutral[800] }}>Resumo do Pedido</h2>
 
-            {/* CEP Input */}
-            <div className="mb-4">
-              <label className="flex items-center gap-2 text-sm font-medium mb-2" style={{ color: theme.colors.neutral[700] }}>
-                <Truck className="w-4 h-4" style={{ color: theme.colors.primary[500] }} />
-                Calcular frete
-              </label>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: theme.colors.neutral[400] }} />
-                  <input
-                    type="text"
-                    value={cep}
-                    onChange={handleCepChange}
-                    placeholder="00000-000"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2"
-                    style={{ 
-                      borderColor: shippingError ? theme.colors.error : theme.colors.primary[200],
-                      color: theme.colors.neutral[800]
-                    }}
-                  />
-                </div>
-                <button
-                  onClick={calculateShipping}
-                  disabled={isCalculating || cep.length < 8}
-                  className="px-4 py-2.5 rounded-lg font-medium text-sm transition-all whitespace-nowrap"
-                  style={{ 
-                    backgroundColor: isCalculating || cep.length < 8 ? theme.colors.neutral[200] : theme.colors.primary[500],
-                    color: isCalculating || cep.length < 8 ? theme.colors.neutral[500] : 'white'
-                  }}
-                >
-                  {isCalculating ? '...' : 'Calcular'}
-                </button>
-              </div>
-              {shippingError && (
-                <p className="text-xs mt-1" style={{ color: theme.colors.error }}>{shippingError}</p>
-              )}
-            </div>
-
-            {/* Shipping Options */}
-            {shippingQuotes.length > 0 && (
-              <div className="mb-4 space-y-2">
-                {shippingQuotes.map((quote) => (
-                  <label
-                    key={quote.method.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all"
-                    style={{ 
-                      borderColor: selectedShipping?.method.id === quote.method.id ? theme.colors.primary[400] : theme.colors.primary[100],
-                      backgroundColor: selectedShipping?.method.id === quote.method.id ? theme.colors.primary[50] : 'transparent'
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="shipping"
-                      checked={selectedShipping?.method.id === quote.method.id}
-                      onChange={() => setSelectedShipping(quote)}
-                      className="accent-pink-500"
-                    />
-                    <div className="flex-1">
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium text-sm" style={{ color: theme.colors.neutral[800] }}>
-                          {quote.method.name}
-                        </span>
-                        <span className="font-bold text-sm" style={{ color: theme.colors.primary[600] }}>
-                          {quote.cost === 0 ? 'Grátis' : formatCurrency(quote.cost)}
-                        </span>
-                      </div>
-                      <p className="text-xs" style={{ color: theme.colors.neutral[500] }}>
-                        {quote.estimatedDays}
-                      </p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            )}
-
             <div className="space-y-3 mb-6">
               <div className="flex justify-between" style={{ color: theme.colors.neutral[600] }}>
                 <span>Subtotal</span>
@@ -319,8 +226,8 @@ export const Cart: React.FC<CartProps> = ({
               </div>
               <div className="flex justify-between" style={{ color: theme.colors.neutral[600] }}>
                 <span>Frete</span>
-                <span style={{ color: selectedShipping ? theme.colors.success : theme.colors.neutral[400] }}>
-                  {selectedShipping ? (selectedShipping.cost === 0 ? 'Grátis' : formatCurrency(selectedShipping.cost)) : 'A calcular'}
+                <span style={{ color: theme.colors.success }}>
+                  {shippingCost > 0 ? formatCurrency(shippingCost) : 'A combinar'}
                 </span>
               </div>
             </div>
@@ -331,12 +238,12 @@ export const Cart: React.FC<CartProps> = ({
                 <span style={{ color: theme.colors.primary[600] }}>{formatCurrency(total)}</span>
               </div>
               <p className="text-sm mt-1" style={{ color: theme.colors.neutral[500] }}>
-                ou até 6x de {formatCurrency(total / 6)}
+                ou até 3x de {formatCurrency(total / 3)}
               </p>
             </div>
 
             <button
-              onClick={onCheckout}
+              onClick={handleProceedToPayment}
               className="w-full text-white py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2"
               style={{ 
                 background: `linear-gradient(135deg, ${theme.colors.primary[500]} 0%, ${theme.colors.primary[600]} 100%)`,
@@ -351,18 +258,155 @@ export const Cart: React.FC<CartProps> = ({
                 e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
-              Finalizar Compra <ArrowRight className="w-5 h-5" />
+              Prosseguir com Compra <ArrowRight className="w-5 h-5" />
             </button>
 
             <div className="mt-6 space-y-2">
               <div className="flex items-center gap-2 text-sm" style={{ color: theme.colors.neutral[500] }}>
                 <Package className="w-4 h-4" style={{ color: theme.colors.primary[500] }} />
-                <span>Entrega em todo o Brasil</span>
+                <span>Entrega digital imediata</span>
+              </div>
+              
+              <div className="bg-yellow-50 p-3 rounded-lg">
+                <p className="text-xs text-yellow-700 mb-2">
+                  💡 Precisa combinar o frete? Fale conosco pelo WhatsApp!
+                </p>
+                <button
+                  onClick={() => window.open('https://wa.me/5598970019366?text=Olá! Gostaria de combinar o valor do frete para meu pedido.', '_blank')}
+                  className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.149-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.123-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                  </svg>
+                  WhatsApp: (98) 97001-9366
+                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Modal para inserir valor do frete */}
+      {showShippingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div 
+            className="bg-white rounded-2xl p-6 max-w-md w-full"
+            style={{ boxShadow: theme.shadows.pinkLg }}
+          >
+            <h3 className="text-xl font-bold mb-4" style={{ color: theme.colors.neutral[800] }}>
+              Valor do Frete
+            </h3>
+            
+            <p className="mb-4" style={{ color: theme.colors.neutral[600] }}>
+              Informe o valor do frete combinado com o vendedor:
+            </p>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium mb-2" style={{ color: theme.colors.neutral[700] }}>
+                Valor do Frete
+              </label>
+              <input
+                type="text"
+                value={formatShippingInput(shippingInput)}
+                onChange={handleShippingInputChange}
+                placeholder="R$ 0,00"
+                className="w-full px-4 py-3 rounded-lg border text-lg font-medium focus:outline-none focus:ring-2"
+                style={{ 
+                  borderColor: theme.colors.primary[200],
+                  color: theme.colors.neutral[800]
+                }}
+              />
+            </div>
+
+            <div className="bg-yellow-50 p-4 rounded-lg mb-6">
+              <h4 className="font-semibold mb-2 text-yellow-800">📞 Combinar Frete</h4>
+              <p className="text-sm text-yellow-700 mb-3">
+                Antes de prosseguir, entre em contato para combinar o valor do frete:
+              </p>
+              <button
+                onClick={() => window.open('https://wa.me/5598970019366?text=Olá! Gostaria de combinar o valor do frete para meu pedido.', '_blank')}
+                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.149-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.123-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                </svg>
+                WhatsApp: (98) 97001-9366
+              </button>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-lg mb-6">
+              <div className="flex justify-between mb-2">
+                <span style={{ color: theme.colors.neutral[600] }}>Subtotal:</span>
+                <span>{formatCurrency(subtotal)}</span>
+              </div>
+              <div className="flex justify-between mb-2">
+                <span style={{ color: theme.colors.neutral[600] }}>Frete:</span>
+                <span>{formatCurrency(shippingCost)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-lg pt-2 border-t">
+                <span style={{ color: theme.colors.neutral[800] }}>Total:</span>
+                <span style={{ color: theme.colors.primary[600] }}>{formatCurrency(total)}</span>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <h4 className="font-semibold mb-3" style={{ color: theme.colors.neutral[800] }}>Forma de Pagamento</h4>
+              <div className="space-y-2">
+                <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50" style={{ borderColor: theme.colors.primary[200] }}>
+                  <input type="radio" name="payment" value="pix" defaultChecked className="w-4 h-4" />
+                  <span>PIX</span>
+                </label>
+                <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50" style={{ borderColor: theme.colors.primary[200] }}>
+                  <input type="radio" name="payment" value="credit" className="w-4 h-4" />
+                  <span>Cartão de Crédito (até 3x)</span>
+                </label>
+                <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50" style={{ borderColor: theme.colors.primary[200] }}>
+                  <input type="radio" name="payment" value="debit" className="w-4 h-4" />
+                  <span>Cartão de Débito</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowShippingModal(false)}
+                className="flex-1 px-4 py-3 rounded-lg font-medium transition-all"
+                style={{ 
+                  backgroundColor: theme.colors.neutral[100],
+                  color: theme.colors.neutral[700]
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmShipping}
+                className="flex-1 px-4 py-3 rounded-lg font-medium text-white transition-all"
+                style={{ 
+                  backgroundColor: theme.colors.primary[500],
+                  boxShadow: theme.shadows.pink
+                }}
+              >
+                Confirmar e Pagar
+              </button>
+            </div>
+
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-sm text-gray-600 mb-3 text-center">
+                💳 Após escolher a forma de pagamento, clique abaixo para acessar o Asaas:
+              </p>
+              <button
+                onClick={() => window.open('https://www.asaas.com/c/siak23mklgcai3yb', '_blank')}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+                Pagar com Asaas
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,10 +1,3 @@
 {
-  "functions": {
-    "api/superfrete/cotacao.js": {
-      "runtime": "nodejs18.x"
-    }
-  },
-  "env": {
-    "SUPERFRETE_TOKEN": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NzE1NTIyNDIsInN1YiI6Ink5S2NvODVBemJORU5zdU1aYU92czJ5WGIzZjEifQ.GmKwIgJxsvcLUaVjgF677OaEjlgu6bMBjprJ-ESaGE8"
-  }
+  "env": {}
 }
