@@ -3,7 +3,7 @@
  *
  * Roteamento por ambiente:
  *  - localhost → /api/asaas/* (proxy Vite, configurado em vite.config.ts)
- *  - produção Netlify → /.netlify/functions/asaas-proxy (função serverless)
+ *  - produção Vercel → /api/asaas-proxy (serverless function em /api/asaas-proxy.js)
  *
  * Em ambos os casos, o token é injetado no lado do servidor — nunca exposto no browser.
  */
@@ -13,15 +13,15 @@ import { PaymentMethod, Order } from '../types';
 const IS_PRODUCTION = typeof window !== 'undefined' && !window.location.hostname.includes('localhost');
 
 /**
- * Retorna a URL base conforme o ambiente.
- * DEV  → /api/asaas  (proxy Vite redireciona para api.asaas.com/v3 com token)
- * PROD → /.netlify/functions/asaas-proxy?endpoint=...
+ * Retorna a URL do proxy conforme o ambiente.
+ * DEV  → /api/asaas/[endpoint]    (proxy Vite → api.asaas.com/v3)
+ * PROD → /api/asaas-proxy?endpoint=[endpoint]  (Vercel Serverless Function)
  */
 function buildUrl(endpoint: string): string {
   if (IS_PRODUCTION) {
-    return `/.netlify/functions/asaas-proxy?endpoint=${encodeURIComponent(endpoint)}`;
+    return `/api/asaas-proxy?endpoint=${encodeURIComponent(endpoint)}`;
   }
-  // Proxy do Vite: /api/asaas/customers → api.asaas.com/v3/customers
+  // Proxy do Vite para dev local
   return `/api/asaas${endpoint}`;
 }
 
