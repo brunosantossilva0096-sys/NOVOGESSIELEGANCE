@@ -5,6 +5,9 @@ import { emailService } from './email';
 import { melhorEnvio } from './melhorEnvio';
 import type { StoreConfig } from '../types';
 
+// Token Asaas de produção — também pode ser configurado via VITE_ASAAS_TOKEN
+const ASAAS_PRODUCTION_TOKEN = import.meta.env.VITE_ASAAS_TOKEN || 'cb44adc0-3e19-4e11-b8e6-7c1a378642da';
+
 const STORE_CONFIG_KEY = 'gessielegance_config';
 
 const defaultStoreConfig: StoreConfig = {
@@ -50,7 +53,7 @@ export async function initializeServices(): Promise<void> {
   const storeConfig = await db.getStoreConfig();
   if (storeConfig) {
     emailService.configure(storeConfig.name, storeConfig.contactEmail);
-    
+
     // Initialize Melhor Envio if configured
     if (storeConfig.melhorEnvioConfig?.apiKey) {
       melhorEnvio.configure(
@@ -73,7 +76,7 @@ async function createDefaultAdminAccount(): Promise<void> {
     // Check if any admin user exists
     const allUsers = await db.getAllUsers();
     const hasAdmin = allUsers.some(u => u.role === 'admin');
-    
+
     if (!hasAdmin) {
       // Create default admin account
       const adminUser = {
@@ -87,7 +90,7 @@ async function createDefaultAdminAccount(): Promise<void> {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      
+
       await db.addUser(adminUser);
       console.log('✅ Default admin account created:');
       console.log('   Email: admin@gessielegance.com');

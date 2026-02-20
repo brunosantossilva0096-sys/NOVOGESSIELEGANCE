@@ -1,29 +1,40 @@
-import { Payment, PaymentMethod, Order, CartItem } from '../types';
+/**
+ * AsaasService — Gateway de pagamento centralizado.
+ * Em produção (Netlify), usa o proxy /.netlify/functions/asaas-proxy para evitar CORS.
+ * Em desenvolvimento local, chama a API diretamente com o token (requer proxy local ou cors-anywhere).
+ */
 
-const ASAAS_API_URL = 'https://api.asaas.com/v3';
-const ASAAS_SANDBOX_URL = 'https://sandbox.asaas.com/api/v3';
+import { PaymentMethod, Order } from '../types';
 
-interface AsaasCustomer {
+const IS_NETLIFY = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+const PROXY_URL = '/.netlify/functions/asaas-proxy';
+// Fallback direto para dev — em produção o proxy já injeta o token
+const DIRECT_URL = 'https://api.asaas.com/v3';
+const API_TOKEN = 'cb44adc0-3e19-4e11-b8e6-7c1a378642da';
+
+/* =========================================================
+   Interfaces Asaas
+   ========================================================= */
+export interface AsaasCustomer {
   id?: string;
   name: string;
-  cpfCnpj?: string;
+  cpfCnpj: string;
   email: string;
   phone?: string;
   mobilePhone?: string;
   address?: string;
   addressNumber?: string;
   complement?: string;
-  province?: string;
+  province?: string; // bairro
   postalCode?: string;
   externalReference?: string;
 }
 
-interface AsaasPayment {
-  id?: string;
-  customer: string;
+export interface AsaasPaymentInput {
+  customer: string;          // ID do cliente Asaas
   billingType: 'PIX' | 'CREDIT_CARD' | 'DEBIT_CARD' | 'BOLETO';
   value: number;
-  dueDate: string;
+  dueDate: string;           // YYYY-MM-DD
   description?: string;
   externalReference?: string;
   installmentCount?: number;
@@ -47,148 +58,120 @@ interface AsaasPayment {
   };
 }
 
-interface AsaasResponse<T> {
-  id: string;
-  object: string;
-  [key: string]: unknown;
+export interface AsaasPaymentResult {
+  success: boolean;
+  paymentId?: string;
+  invoiceUrl?: string;
+  bankSlipUrl?: string;
+  qrCodeImage?: string;     // base64 do QR Code PIX
+  qrCodePayload?: string;   // copia e cola PIX
+  qrCodeExpiration?: string;
+  error?: string;
 }
 
-interface AsaasQrCode {
-  encodedImage: string;
-  payload: string;
-  expirationDate: string;
+export interface AsaasPaymentStatus {
+  success: boolean;
+  status?: 'PENDING' | 'RECEIVED' | 'CONFIRMED' | 'OVERDUE' | 'REFUNDED' | 'CANCELLED';
+  value?: number;
+  paidValue?: number;
+  paidAt?: string;
+  error?: string;
 }
 
+/* =========================================================
+   Classe principal
+   ========================================================= */
 class AsaasService {
-  private apiKey: string = '';
-  private isSandbox: boolean = true;
-  private webhookSecret: string = '';
-
-  configure(apiKey: string, sandbox: boolean = true, webhookSecret?: string) {
-    this.apiKey = apiKey;
-    this.isSandbox = sandbox;
-    if (webhookSecret) {
-      this.webhookSecret = webhookSecret;
-    }
-  }
-
-  private getBaseUrl(): string {
-    return this.isSandbox ? ASAAS_SANDBOX_URL : ASAAS_API_URL;
-  }
-
-  private getHeaders(): HeadersInit {
-    return {
-      'Content-Type': 'application/json',
-      'access_token': this.apiKey,
-    };
-  }
-
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${this.getBaseUrl()}${endpoint}`;
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        ...this.getHeaders(),
-        ...options.headers,
-      },
-    });
+    let url: string;
+    let headers: HeadersInit;
+
+    if (IS_NETLIFY) {
+      // Usa o proxy Netlify em produção
+      url = `${PROXY_URL}?endpoint=${encodeURIComponent(endpoint)}`;
+      headers = { 'Content-Type': 'application/json' };
+    } else {
+      // Em dev local, chama diretamente (pode precisar de extensão CORS no browser ou proxy)
+      url = `${DIRECT_URL}${endpoint}`;
+      headers = {
+        'Content-Type': 'application/json',
+        'access_token': API_TOKEN,
+      };
+    }
+
+    const response = await fetch(url, { ...options, headers: { ...headers, ...options.headers } });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Erro desconhecido' }));
-      throw new Error(error.message || `HTTP ${response.status}: ${response.statusText}`);
+      const errData = await response.json().catch(() => ({ errors: [{ description: `HTTP ${response.status}` }] }));
+      const msg = errData?.errors?.[0]?.description || errData?.message || `Erro HTTP ${response.status}`;
+      throw new Error(msg);
     }
 
-    return response.json();
+    return response.json() as Promise<T>;
   }
 
-  // Customer management
-  async createCustomer(data: AsaasCustomer): Promise<AsaasResponse<AsaasCustomer>> {
-    return this.request('/customers', {
+  /* ----- Customers ----- */
+  async findOrCreateCustomer(data: Omit<AsaasCustomer, 'id'>): Promise<string> {
+    // Busca por referência externa (userId)
+    if (data.externalReference) {
+      try {
+        const found = await this.request<{ data: { id: string }[] }>(
+          `/customers?externalReference=${data.externalReference}`
+        );
+        if (found.data?.[0]?.id) return found.data[0].id;
+      } catch {
+        // Continua para criação
+      }
+    }
+
+    const customer = await this.request<{ id: string }>('/customers', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+
+    return customer.id;
   }
 
-  async getCustomer(id: string): Promise<AsaasResponse<AsaasCustomer>> {
-    return this.request(`/customers/${id}`);
-  }
-
-  async findCustomerByReference(externalReference: string): Promise<AsaasResponse<AsaasCustomer> | null> {
-    const response = await this.request<{ data: AsaasResponse<AsaasCustomer>[] }>(
-      `/customers?externalReference=${externalReference}`
-    );
-    return response.data[0] || null;
-  }
-
-  // Payment creation
-  async createPayment(data: AsaasPayment): Promise<AsaasResponse<AsaasPayment> & { invoiceUrl?: string; bankSlipUrl?: string }> {
+  /* ----- Payments ----- */
+  async createPayment(data: AsaasPaymentInput): Promise<{ id: string; invoiceUrl?: string; bankSlipUrl?: string }> {
     return this.request('/payments', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async getPayment(id: string): Promise<AsaasResponse<AsaasPayment>> {
-    return this.request(`/payments/${id}`);
-  }
-
-  async cancelPayment(id: string): Promise<AsaasResponse<AsaasPayment>> {
-    return this.request(`/payments/${id}/cancel`, { method: 'POST' });
-  }
-
-  async refundPayment(id: string): Promise<AsaasResponse<AsaasPayment>> {
-    return this.request(`/payments/${id}/refund`, { method: 'POST' });
-  }
-
-  // PIX specific
-  async getPixQrCode(paymentId: string): Promise<AsaasQrCode> {
+  async getPixQrCode(paymentId: string): Promise<{ encodedImage: string; payload: string; expirationDate: string }> {
     return this.request(`/payments/${paymentId}/pixQrCode`);
   }
 
-  // Webhook handling
-  verifyWebhookSignature(payload: string, signature: string): boolean {
-    // In production, implement HMAC verification
-    // For now, check if webhook secret matches
-    return true;
+  async getPaymentStatus(paymentId: string): Promise<{
+    id: string;
+    status: string;
+    value: number;
+    netValue: number;
+    paymentDate?: string;
+  }> {
+    return this.request(`/payments/${paymentId}`);
   }
 
-  parseWebhookEvent(payload: unknown): { event: string; payment: AsaasResponse<AsaasPayment> } | null {
-    try {
-      const data = payload as { event: string; payment: AsaasResponse<AsaasPayment> };
-      if (data.event && data.payment) {
-        return data;
-      }
-      return null;
-    } catch {
-      return null;
-    }
+  async cancelPayment(paymentId: string): Promise<void> {
+    await this.request(`/payments/${paymentId}/cancel`, { method: 'POST' });
   }
 
-  // Helper to map our PaymentMethod to Asaas billingType
-  mapPaymentMethod(method: PaymentMethod): 'PIX' | 'CREDIT_CARD' | 'DEBIT_CARD' | 'BOLETO' {
-    const mapping: Record<PaymentMethod, 'PIX' | 'CREDIT_CARD' | 'DEBIT_CARD' | 'BOLETO'> = {
-      [PaymentMethod.PIX]: 'PIX',
-      [PaymentMethod.CREDIT_CARD]: 'CREDIT_CARD',
-      [PaymentMethod.DEBIT_CARD]: 'DEBIT_CARD',
-      [PaymentMethod.BOLETO]: 'BOLETO',
-    };
-    return mapping[method];
-  }
-
-  // Create payment for order
-  async createOrderPayment(
-    order: Order,
-    customerData: {
+  /* ----- Método principal: criar cobrança completa para pedido ----- */
+  async createOrderPayment(params: {
+    order: Order;
+    customer: {
       name: string;
       email: string;
-      cpf?: string;
+      cpfCnpj: string;
       phone?: string;
+      postalCode?: string;
       address?: string;
       addressNumber?: string;
       complement?: string;
       province?: string;
-      postalCode?: string;
-    },
+    };
     cardData?: {
       holderName: string;
       number: string;
@@ -196,89 +179,78 @@ class AsaasService {
       expiryYear: string;
       ccv: string;
       installments?: number;
-    }
-  ): Promise<{
-    success: boolean;
-    paymentId?: string;
-    invoiceUrl?: string;
-    qrCode?: string;
-    qrCodePayload?: string;
-    qrCodeExpiration?: string;
-    bankSlipUrl?: string;
-    error?: string;
-  }> {
+    };
+  }): Promise<AsaasPaymentResult> {
     try {
-      if (!this.apiKey) {
-        // Simulate payment in development mode
-        return {
-          success: true,
-          paymentId: `sim_${Date.now()}`,
-          invoiceUrl: '#',
-          qrCode: 'simulated-qr-code',
-          qrCodePayload: '00020101021226870014br.gov.bcb.pix2565',
-          qrCodeExpiration: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-        };
-      }
+      const { order, customer, cardData } = params;
 
-      // Find or create customer
-      let customer = await this.findCustomerByReference(order.userId);
-      if (!customer) {
-        customer = await this.createCustomer({
-          name: customerData.name,
-          email: customerData.email,
-          cpfCnpj: customerData.cpf,
-          phone: customerData.phone,
-          externalReference: order.userId,
-          address: customerData.address,
-          addressNumber: customerData.addressNumber,
-          complement: customerData.complement,
-          province: customerData.province,
-          postalCode: customerData.postalCode,
-        });
-      }
+      // 1. Encontra ou cria cliente
+      const customerId = await this.findOrCreateCustomer({
+        name: customer.name,
+        cpfCnpj: customer.cpfCnpj || '00000000000',
+        email: customer.email,
+        mobilePhone: customer.phone,
+        postalCode: customer.postalCode,
+        address: customer.address,
+        addressNumber: customer.addressNumber,
+        complement: customer.complement,
+        province: customer.province,
+        externalReference: order.userId,
+      });
 
-      // Prepare payment data
-      const paymentData: AsaasPayment = {
-        customer: customer.id!,
-        billingType: this.mapPaymentMethod(order.paymentMethod),
+      // 2. Prepara dados do pagamento
+      const billingType = this.mapBillingType(order.paymentMethod);
+      const dueDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+      const paymentInput: AsaasPaymentInput = {
+        customer: customerId,
+        billingType,
         value: order.total,
-        dueDate: new Date().toISOString().split('T')[0],
-        description: `Pedido ${order.orderNumber} - GessiElegance`,
+        dueDate,
+        description: `Pedido ${order.orderNumber} — GessiElegance`,
         externalReference: order.id,
       };
 
-      // Add credit card data if provided
-      if (cardData && order.paymentMethod === PaymentMethod.CREDIT_CARD) {
-        paymentData.creditCard = {
+      // 3. Dados do cartão, se aplicável
+      if (cardData && billingType === 'CREDIT_CARD') {
+        paymentInput.creditCard = {
           holderName: cardData.holderName,
           number: cardData.number.replace(/\s/g, ''),
           expiryMonth: cardData.expiryMonth,
           expiryYear: cardData.expiryYear,
           ccv: cardData.ccv,
         };
-        paymentData.creditCardHolderInfo = {
-          name: customerData.name,
-          email: customerData.email,
-          cpfCnpj: customerData.cpf || '',
-          postalCode: customerData.postalCode || '',
-          addressNumber: customerData.addressNumber || '',
-          addressComplement: customerData.complement,
+        paymentInput.creditCardHolderInfo = {
+          name: customer.name,
+          email: customer.email,
+          cpfCnpj: customer.cpfCnpj || '00000000000',
+          postalCode: customer.postalCode || '00000000',
+          addressNumber: customer.addressNumber || 'S/N',
+          addressComplement: customer.complement,
+          mobilePhone: customer.phone,
         };
-
         if (cardData.installments && cardData.installments > 1) {
-          paymentData.installmentCount = cardData.installments;
+          paymentInput.installmentCount = cardData.installments;
+          paymentInput.installmentValue = parseFloat((order.total / cardData.installments).toFixed(2));
         }
       }
 
-      // Create payment
-      const payment = await this.createPayment(paymentData);
+      // 4. Cria o pagamento
+      const payment = await this.createPayment(paymentInput);
 
-      let qrCode: AsaasQrCode | undefined;
-      if (order.paymentMethod === PaymentMethod.PIX && payment.id) {
+      // 5. Se for PIX, busca QR Code
+      let qrCodeImage: string | undefined;
+      let qrCodePayload: string | undefined;
+      let qrCodeExpiration: string | undefined;
+
+      if (billingType === 'PIX' && payment.id) {
         try {
-          qrCode = await this.getPixQrCode(payment.id);
+          const pix = await this.getPixQrCode(payment.id);
+          qrCodeImage = `data:image/png;base64,${pix.encodedImage}`;
+          qrCodePayload = pix.payload;
+          qrCodeExpiration = pix.expirationDate;
         } catch (e) {
-          console.error('Error getting PIX QR code:', e);
+          console.warn('Não foi possível obter QR Code PIX:', e);
         }
       }
 
@@ -286,65 +258,58 @@ class AsaasService {
         success: true,
         paymentId: payment.id,
         invoiceUrl: payment.invoiceUrl,
-        qrCode: qrCode?.encodedImage,
-        qrCodePayload: qrCode?.payload,
-        qrCodeExpiration: qrCode?.expirationDate,
         bankSlipUrl: payment.bankSlipUrl,
+        qrCodeImage,
+        qrCodePayload,
+        qrCodeExpiration,
       };
     } catch (error) {
-      console.error('Asaas payment creation error:', error);
+      console.error('[AsaasService] Erro ao criar pagamento:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Erro ao criar pagamento',
+        error: error instanceof Error ? error.message : 'Erro desconhecido ao criar cobrança',
       };
     }
   }
 
-  // Check payment status
-  async checkPaymentStatus(paymentId: string): Promise<{
-    success: boolean;
-    status?: 'PENDING' | 'RECEIVED' | 'CONFIRMED' | 'OVERDUE' | 'REFUNDED' | 'CANCELLED';
-    value?: number;
-    paidValue?: number;
-    error?: string;
-  }> {
+  /* ----- Verificar status do pagamento ----- */
+  async checkPaymentStatus(paymentId: string): Promise<AsaasPaymentStatus> {
     try {
-      if (paymentId.startsWith('sim_')) {
-        // Simulated payment - auto-confirm after 5 seconds
-        const simTime = parseInt(paymentId.split('_')[1]);
-        const elapsed = Date.now() - simTime;
-        return {
-          success: true,
-          status: elapsed > 5000 ? 'CONFIRMED' : 'PENDING',
-          value: 0,
-          paidValue: elapsed > 5000 ? 0 : 0,
-        };
-      }
-
-      const payment = await this.getPayment(paymentId);
-      const statusMapping: Record<string, 'PENDING' | 'RECEIVED' | 'CONFIRMED' | 'OVERDUE' | 'REFUNDED' | 'CANCELLED'> = {
-        'PENDING': 'PENDING',
-        'RECEIVED': 'RECEIVED',
-        'CONFIRMED': 'CONFIRMED',
-        'OVERDUE': 'OVERDUE',
-        'REFUNDED': 'REFUNDED',
-        'CANCELLED': 'CANCELLED',
-      };
-
+      const data = await this.getPaymentStatus(paymentId);
       return {
         success: true,
-        status: statusMapping[payment.status as string] || 'PENDING',
-        value: payment.value as number,
-        paidValue: payment.paidValue as number,
+        status: data.status as AsaasPaymentStatus['status'],
+        value: data.value,
+        paidValue: data.netValue,
+        paidAt: data.paymentDate,
       };
     } catch (error) {
-      console.error('Check payment status error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Erro ao verificar status',
       };
     }
   }
+
+  /* ----- Utilitários ----- */
+  private mapBillingType(method: PaymentMethod): AsaasPaymentInput['billingType'] {
+    const map: Record<PaymentMethod, AsaasPaymentInput['billingType']> = {
+      [PaymentMethod.PIX]: 'PIX',
+      [PaymentMethod.CREDIT_CARD]: 'CREDIT_CARD',
+      [PaymentMethod.DEBIT_CARD]: 'DEBIT_CARD',
+      [PaymentMethod.BOLETO]: 'BOLETO',
+      [PaymentMethod.CASH]: 'PIX', // fallback para dinheiro → não usa Asaas
+    };
+    return map[method] ?? 'PIX';
+  }
+
+  /** Formata CPF/CNPJ removendo pontução */
+  static cleanDocument(doc: string): string {
+    return doc.replace(/\D/g, '');
+  }
 }
 
-export const asaas = new AsaasService();
+export const asaasService = new AsaasService();
+
+/** Exportação standalone de cleanDocument para uso em componentes */
+export const cleanDocument = (doc: string): string => doc.replace(/\D/g, '');
