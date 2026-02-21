@@ -88,7 +88,7 @@ class PdfService {
         <div class="receipt">
           <div class="header">
             <h1>${storeName}</h1>
-            ${storeAddress ? `<p class="subtitle">${storeAddress}</p>` : ''}
+            ${storeAddress && storeAddress.trim() !== '' ? `<p class="subtitle">${storeAddress}</p>` : ''}
             ${storePhone ? `<p class="subtitle">${storePhone}</p>` : ''}
             ${storeEmail ? `<p class="subtitle">${storeEmail}</p>` : ''}
             <h2 style="margin-top: 20px; font-size: 18px;">COMPROVANTE DE COMPRA</h2>
@@ -143,6 +143,7 @@ class PdfService {
             </div>
           </div>
 
+          ${storeAddress && storeAddress.trim() !== '' ? `
           <div class="section">
             <div class="section-title">Endereço de Entrega</div>
             <div class="info-value">
@@ -153,6 +154,7 @@ class PdfService {
               CEP: ${this.formatCep(order.shippingAddress.zip)}
             </div>
           </div>
+          ` : ''}
 
           <div class="section">
             <div class="section-title">Itens do Pedido</div>
@@ -275,8 +277,8 @@ class PdfService {
   private translateStatus(status: string): string {
     const translations: Record<string, string> = {
       'PENDING': 'Pendente',
-      'CONFIRMED': 'Confirmado',
-      'RECEIVED': 'Recebido',
+      'CONFIRMED': 'Pago',
+      'RECEIVED': 'Pago',
       'OVERDUE': 'Vencido',
       'CANCELLED': 'Cancelado',
       'REFUNDED': 'Estornado',
@@ -302,6 +304,7 @@ class PdfService {
       'CREDIT_CARD': 'Cartão de Crédito',
       'DEBIT_CARD': 'Cartão de Débito',
       'BOLETO': 'Boleto Bancário',
+      'CASH': 'Dinheiro',
     };
     return translations[method] || method;
   }

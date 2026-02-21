@@ -135,7 +135,7 @@ export const PDV: React.FC<PDVProps> = ({ onClose, currentUser }) => {
       const orderResult = await orderService.createOrder({
         userId: currentUser?.id || '', // Empty string or null if allowed
         userName: customerName || 'Cliente PDV',
-        userEmail: currentUser?.email || 'pdv@gessielegance.com',
+        userEmail: currentUser?.email || 'gessianebelo1234@gmail.com',
         userPhone: customerPhone,
         items: cart,
         subtotal,
@@ -166,13 +166,16 @@ export const PDV: React.FC<PDVProps> = ({ onClose, currentUser }) => {
       });
 
       if (orderResult.success && orderResult.order) {
-        // Mark as paid for cash/card payments
-        if (paymentMethod === PaymentMethod.CASH || paymentMethod === PaymentMethod.CREDIT_CARD || paymentMethod === PaymentMethod.DEBIT_CARD) {
+        if (paymentMethod === PaymentMethod.CASH || paymentMethod === PaymentMethod.CREDIT_CARD || paymentMethod === PaymentMethod.DEBIT_CARD || paymentMethod === PaymentMethod.PIX) {
           await orderService.updatePaymentStatus(
             orderResult.order.id,
             PaymentStatus.RECEIVED
           );
           await orderService.updateOrderStatus(orderResult.order.id, OrderStatus.PAID);
+
+          // Update the object for the receipt
+          orderResult.order.status = OrderStatus.PAID;
+          orderResult.order.paymentStatus = PaymentStatus.RECEIVED;
         }
 
         setLastOrder(orderResult.order);
@@ -194,9 +197,8 @@ export const PDV: React.FC<PDVProps> = ({ onClose, currentUser }) => {
       pdfService.openReceipt({
         order: lastOrder,
         storeName: 'Novage Gessi Elegance',
-        storeAddress: 'Rua das Flores, 123 - Centro',
-        storePhone: '(11) 99999-9999',
-        storeEmail: 'contato@gessielegance.com'
+        storePhone: '(98) 98538-1823',
+        storeEmail: 'gessianebelo1234@gmail.com'
       });
     }
   };
