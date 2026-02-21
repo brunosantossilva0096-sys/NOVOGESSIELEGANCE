@@ -100,9 +100,15 @@ class AuthService {
 
       if (error) throw error;
 
+      // If sign-up returns a user, fetch their profile immediately
+      if (authData.user) {
+        await this.fetchProfile(authData.user.id);
+      }
+
       return {
         success: true,
-        message: 'Cadastro realizado com sucesso! Verifique seu e-mail.'
+        user: this.currentUser || undefined,
+        message: 'Cadastro realizado com sucesso!'
       };
     } catch (error: any) {
       console.error('Registration error:', error);
