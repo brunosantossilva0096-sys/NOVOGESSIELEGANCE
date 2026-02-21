@@ -154,15 +154,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
 
     const product: Product = {
-      id: isEditing || `prod-${Date.now()}`,
+      id: isEditing || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `prod-${Date.now()}`),
       name: formData.name,
       description: formData.description || '',
       price: formData.price,
+      costPrice: formData.costPrice,
       promotionalPrice: formData.promotionalPrice,
       images: formData.images?.filter(Boolean) || ['https://via.placeholder.com/600'],
       category: categories.find(c => c.id === formData.categoryId)?.name || '',
       categoryId: formData.categoryId,
       stock: formData.stock || 0,
+      minStock: formData.minStock || 5,
       sizes: formData.sizes || [],
       colors: formData.colors || [],
       tags: formData.tags || [],
