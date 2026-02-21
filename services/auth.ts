@@ -208,6 +208,71 @@ class AuthService {
       return { success: false, message: error.message };
     }
   }
+
+  // Employee management
+  async getAllEmployees(): Promise<User[]> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .in('role', ['employee', 'admin']);
+
+    if (error) throw error;
+    return (data || []).map(u => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      cpf: u.cpf,
+      phone: u.phone,
+      addresses: u.addresses || [],
+      role: u.role,
+      isActive: u.is_active,
+      createdAt: u.created_at,
+      updatedAt: u.updated_at
+    }));
+  }
+
+  async createEmployee(data: any): Promise<{ success: boolean; message?: string }> {
+    try {
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            name: data.name,
+            phone: data.phone,
+            role: 'employee'
+          }
+        }
+      });
+
+      if (error) throw error;
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
+  }
+
+  async toggleUserStatus(userId: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const { data: profile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('is_active')
+        .eq('id', userId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ is_active: !profile.is_active })
+        .eq('id', userId);
+
+      if (updateError) throw updateError;
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
+  }
 }
 
 export const auth = new AuthService();

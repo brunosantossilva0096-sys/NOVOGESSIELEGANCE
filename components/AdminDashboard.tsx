@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db, orderService, auth } from '../services';
 import type { Product, Order, Category, StoreConfig, User } from '../types';
 import { OrderStatus } from '../types';
-import { Plus, Trash2, Edit, Save, X, Package, ShoppingBag, TrendingUp, Users, DollarSign, AlertCircle, CheckCircle, Truck, Calculator, UserPlus, TrendingDown } from 'lucide-react';
+import { Plus, Trash2, Edit, Save, X, Package, ShoppingBag, TrendingUp, Users, DollarSign, AlertCircle, CheckCircle, Truck, Calculator, UserPlus, TrendingDown, Upload } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 
 interface AdminDashboardProps {
@@ -21,6 +21,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isEditing, setIsEditing] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [stats, setStats] = useState({
     totalSales: 0,
@@ -109,6 +110,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       console.error('Error refreshing data:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('A imagem deve ter no máximo 5MB');
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const imageUrl = await db.uploadProductImage(file);
+      setFormData(prev => ({
+        ...prev,
+        images: [imageUrl]
+      }));
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Erro ao enviar imagem');
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -255,9 +280,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                activeTab === tab ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'
-              }`}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === tab ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'
+                }`}
             >
               {tab === 'stats' && 'Visão Geral'}
               {tab === 'products' && 'Produtos'}
@@ -269,17 +293,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <>
               <button
                 onClick={() => setActiveTab('finance')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                  activeTab === 'finance' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'
-                }`}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'finance' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'
+                  }`}
               >
                 Financeiro
               </button>
               <button
                 onClick={() => setActiveTab('employees')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                  activeTab === 'employees' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'
-                }`}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'employees' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'
+                  }`}
               >
                 Funcionários
               </button>
@@ -470,13 +492,58 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
 
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium mb-1">URL da Imagem</label>
-                    <input
-                      type="text"
-                      className="w-full border border-gray-200 rounded-lg p-2.5"
-                      value={formData.images?.[0] || ''}
-                      onChange={e => setFormData({ ...formData, images: [e.target.value] })}
-                    />
+                    <label className="block text-sm font-medium mb-1 text-gray-700">Foto do Produto</label>
+                    <div className="flex flex-col gap-4">
+                      {formData.images?.[0] && formData.images[0] !== 'https://via.placeholder.com/600' && (
+                        <div className="relative w-32 h-32 group">
+                          <img
+                            src={formData.images[0]}
+                            alt="Preview"
+                            className="w-full h-full object-cover rounded-xl border border-gray-200 shadow-sm"
+                          />
+                          <button
+                            onClick={() => setFormData({ ...formData, images: [] })}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          id="product-image-upload"
+                          onChange={handleImageUpload}
+                          disabled={isUploadingImage}
+                        />
+                        <label
+                          htmlFor="product-image-upload"
+                          className={`flex flex-col items-center justify-center gap-3 w-full border-2 border-dashed rounded-xl p-8 transition-all cursor-pointer
+                            ${isUploadingImage ? 'bg-gray-50 border-gray-200 cursor-not-allowed' : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50/50 hover:shadow-sm'}
+                          `}
+                        >
+                          {isUploadingImage ? (
+                            <div className="flex flex-col items-center gap-2">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                              <span className="text-sm font-medium text-gray-500">Enviando foto...</span>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="p-3 bg-blue-50 rounded-full">
+                                <Upload className="w-6 h-6 text-blue-600" />
+                              </div>
+                              <div className="text-center">
+                                <p className="text-sm font-semibold text-gray-700">Clique para enviar</p>
+                                <p className="text-xs text-gray-500 mt-1">PNG, JPG ou WEBP até 5MB</p>
+                              </div>
+                            </>
+                          )}
+                        </label>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="col-span-2">
@@ -549,9 +616,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       {p.costPrice ? formatCurrency(p.costPrice) : '-'}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                        p.stock <= (p.minStock || 5) ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
-                      }`}>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${p.stock <= (p.minStock || 5) ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+                        }`}>
                         {p.stock} / {p.minStock || 5} min
                       </span>
                     </td>
@@ -664,9 +730,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <button
                   key={period}
                   onClick={() => setReportPeriod(period)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    reportPeriod === period ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${reportPeriod === period ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
                 >
                   {period === 'today' && 'Hoje'}
                   {period === 'week' && 'Semana'}
@@ -850,20 +915,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <td className="px-6 py-4 text-sm text-gray-600">{emp.email}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{emp.phone || '-'}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                        emp.isActive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-                      }`}>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${emp.isActive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                        }`}>
                         {emp.isActive ? 'Ativo' : 'Inativo'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <button
                         onClick={() => handleToggleUserStatus(emp.id)}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                          emp.isActive 
-                            ? 'bg-red-100 text-red-600 hover:bg-red-200' 
+                        className={`px-3 py-1 rounded-lg text-sm font-medium ${emp.isActive
+                            ? 'bg-red-100 text-red-600 hover:bg-red-200'
                             : 'bg-green-100 text-green-600 hover:bg-green-200'
-                        }`}
+                          }`}
                       >
                         {emp.isActive ? 'Desativar' : 'Ativar'}
                       </button>
