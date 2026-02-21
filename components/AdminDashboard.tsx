@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db, orderService, auth } from '../services';
 import type { Product, Order, Category, StoreConfig, User } from '../types';
-import { OrderStatus } from '../types';
+import { OrderStatus, PaymentStatus } from '../types';
 import { Plus, Trash2, Edit, Save, X, Package, ShoppingBag, TrendingUp, Users, DollarSign, AlertCircle, CheckCircle, Truck, Calculator, UserPlus, TrendingDown, Upload } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 
@@ -294,6 +294,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       refreshData();
     } catch (error) {
       console.error('Error updating order:', error);
+    }
+  };
+
+  const handleConfirmPayment = async (orderId: string) => {
+    try {
+      await orderService.updatePaymentStatus(orderId, PaymentStatus.RECEIVED);
+      await orderService.updateOrderStatus(orderId, OrderStatus.PAID);
+      refreshData();
+    } catch (error) {
+      console.error('Error confirming payment:', error);
+      alert('Erro ao confirmar pagamento');
     }
   };
 
@@ -779,7 +790,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         ))}
                       </select>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right flex justify-end gap-2">
+                      {o.status === OrderStatus.PENDING && (
+                        <button
+                          onClick={() => handleConfirmPayment(o.id)}
+                          className="p-2 text-green-500 hover:bg-green-50 rounded-lg transition-colors"
+                          title="Confirmar Pagamento Agora"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                        </button>
+                      )}
                       {currentUser?.role === 'admin' && (
                         <button
                           onClick={() => {
@@ -1064,7 +1084,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </span>
                     </td>
                     <td className="px-6 py-4 font-bold text-gray-900">{formatCurrency(o.total)}</td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right flex justify-end gap-2">
+                      {o.status === OrderStatus.PENDING && (
+                        <button
+                          onClick={() => handleConfirmPayment(o.id)}
+                          className="p-2 text-green-500 hover:bg-green-50 rounded-lg transition-colors"
+                          title="Confirmar Pagamento Agora"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                        </button>
+                      )}
                       {currentUser?.role === 'admin' && (
                         <button
                           onClick={() => {

@@ -254,10 +254,12 @@ const App: React.FC = () => {
         return (
           <Cart
             items={cart}
+            user={user}
             onUpdateQuantity={updateCartQuantity}
             onRemove={removeFromCart}
             onCheckout={goToCheckout}
             onContinueShopping={goToStore}
+            onClearCart={clearCart}
           />
         );
 
@@ -277,10 +279,12 @@ const App: React.FC = () => {
         ) : (
           <Cart
             items={cart}
+            user={user}
             onUpdateQuantity={updateCartQuantity}
             onRemove={removeFromCart}
             onCheckout={goToCheckout}
             onContinueShopping={goToStore}
+            onClearCart={clearCart}
           />
         );
 

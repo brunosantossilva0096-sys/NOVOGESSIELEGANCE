@@ -53,15 +53,6 @@ class OrderService {
 
       await db.addOrder(order);
 
-      // Update product stock
-      for (const item of data.items) {
-        const product = await db.getProductById(item.productId);
-        if (product) {
-          product.stock = Math.max(0, product.stock - item.quantity);
-          await db.updateProduct(product);
-        }
-      }
-
       return { success: true, order };
     } catch (error: any) {
       console.error('Create order error:', error);
@@ -96,6 +87,7 @@ class OrderService {
         return { success: false, error: 'Pedido não encontrado' };
       }
 
+      const oldStatus = order.status;
       order.status = status;
       order.updatedAt = new Date().toISOString();
 
@@ -107,6 +99,11 @@ class OrderService {
         order.shippedAt = new Date().toISOString();
       } else if (status === OrderStatus.DELIVERED) {
         order.deliveredAt = new Date().toISOString();
+      }
+
+      // If status changed to PAID, reduce stock
+      if (status === OrderStatus.PAID && oldStatus !== OrderStatus.PAID) {
+        await this.reduceStock(order);
       }
 
       await db.updateOrder(order);
@@ -147,19 +144,18 @@ class OrderService {
 
       // Update order status based on payment
       if (paymentStatus === PaymentStatus.CONFIRMED || paymentStatus === PaymentStatus.RECEIVED) {
+        const wasAlreadyPaid = order.status === OrderStatus.PAID;
         order.status = OrderStatus.PAID;
         order.paidAt = new Date().toISOString();
-      } else if (paymentStatus === PaymentStatus.CANCELLED) {
-        order.status = OrderStatus.CANCELLED;
 
-        // Restore stock
-        for (const item of order.items) {
-          const product = await db.getProductById(item.productId);
-          if (product) {
-            product.stock += item.quantity;
-            await db.updateProduct(product);
-          }
+        if (!wasAlreadyPaid) {
+          await this.reduceStock(order);
         }
+      } else if (paymentStatus === PaymentStatus.CANCELLED) {
+        if (order.status === OrderStatus.PAID) {
+          await this.restoreStock(order);
+        }
+        order.status = OrderStatus.CANCELLED;
       } else if (paymentStatus === PaymentStatus.REFUNDED) {
         order.status = OrderStatus.REFUNDED;
       }
@@ -373,6 +369,26 @@ class OrderService {
     } catch (error) {
       console.error('Delete order error:', error);
       return { success: false, error: 'Erro ao excluir pedido' };
+    }
+  }
+
+  private async reduceStock(order: Order) {
+    for (const item of order.items) {
+      const product = await db.getProductById(item.productId);
+      if (product) {
+        product.stock = Math.max(0, product.stock - item.quantity);
+        await db.updateProduct(product);
+      }
+    }
+  }
+
+  private async restoreStock(order: Order) {
+    for (const item of order.items) {
+      const product = await db.getProductById(item.productId);
+      if (product) {
+        product.stock += item.quantity;
+        await db.updateProduct(product);
+      }
     }
   }
 }

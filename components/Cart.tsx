@@ -1,32 +1,78 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, Package } from 'lucide-react';
-import type { CartItem } from '../types';
+import { orderService } from '../services';
+import { PaymentMethod } from '../types';
+import type { CartItem, User } from '../types';
+import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, Package, CheckCircle, Loader2 } from 'lucide-react';
 import { theme } from '../theme';
 
 interface CartProps {
   items: CartItem[];
+  user: User | null;
   onUpdateQuantity: (productId: string, quantity: number, size?: string, colorName?: string) => void;
   onRemove: (productId: string, size?: string, colorName?: string) => void;
   onCheckout: (shippingCost?: number) => void;
   onContinueShopping: () => void;
+  onClearCart: () => void;
 }
 
 export const Cart: React.FC<CartProps> = ({
   items,
+  user,
   onUpdateQuantity,
   onRemove,
   onCheckout,
   onContinueShopping,
+  onClearCart,
 }) => {
   const [showShippingModal, setShowShippingModal] = useState(false);
   const [shippingCost, setShippingCost] = useState(0);
   const [shippingInput, setShippingInput] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('pix');
+  const [showAsaasMessage, setShowAsaasMessage] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const subtotal = items.reduce((sum, item) => {
     const price = item.promotionalPrice || item.price;
     return sum + price * item.quantity;
   }, 0);
+
+  const asaasModal = showAsaasMessage && (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+      <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in duration-300">
+        <div className="text-center">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-10 h-10 text-green-600" />
+          </div>
+          <h3 className="text-2xl font-bold mb-4" style={{ color: theme.colors.neutral[800] }}>
+            Agradecemos sua Compra!
+          </h3>
+          <p className="text-gray-600 mb-8 leading-relaxed">
+            Você foi redirecionado para a plataforma de pagamento <strong>Asaas</strong>. <br /><br />
+            Para agilizarmos o processamento do seu pedido, solicitamos a gentileza de <strong>enviar o comprovante de pagamento</strong> para nosso WhatsApp assim que concluir a transação.
+          </p>
+
+          <div className="space-y-3">
+            <button
+              onClick={() => window.open('https://wa.me/5598985381823?text=Olá! Acabei de realizar o pagamento do meu pedido pelo Asaas e aqui está meu comprovante.', '_blank')}
+              className="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-all flex items-center justify-center gap-2"
+            >
+              Enviar Comprovante (WhatsApp)
+            </button>
+            <button
+              onClick={() => {
+                setShowAsaasMessage(false);
+                onContinueShopping();
+              }}
+              className="w-full py-3 rounded-xl font-bold transition-all"
+              style={{ backgroundColor: theme.colors.neutral[100], color: theme.colors.neutral[700] }}
+            >
+              Voltar para o Site
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   const total = subtotal + shippingCost;
 
@@ -61,13 +107,65 @@ export const Cart: React.FC<CartProps> = ({
     onCheckout(shippingCost);
   };
 
-  const handleDirectPayment = () => {
-    // Usar o link fixo fornecido pelo cliente para pagamento após combinar o frete
-    const paymentLink = 'https://www.asaas.com/c/siak23mklgcai3yb';
-    window.open(paymentLink, '_blank');
+  const handleDirectPayment = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+
+    try {
+      // 1. Criar o pedido no Supabase primeiro
+      const orderResult = await orderService.createOrder({
+        userId: user?.id || 'guest',
+        userName: user?.name || 'Cliente Site',
+        userEmail: user?.email || 'venda.site@gessielegance.com',
+        userPhone: user?.phone || '',
+        items,
+        subtotal,
+        shippingCost,
+        discount: 0,
+        total,
+        paymentMethod: PaymentMethod.PIX, // Link fixo é para PIX/Cartão mas tratamos como PIX inicial
+        shippingMethod: {
+          id: 'site-escolha',
+          name: 'Combinado via Site',
+          type: 'other',
+          cost: shippingCost,
+          estimatedDays: 'A combinar',
+          isActive: true
+        },
+        shippingAddress: {
+          id: 'site-address',
+          name: user?.name || 'Endereço Site',
+          street: 'A combinar',
+          number: '-',
+          neighborhood: '-',
+          city: '-',
+          state: '-',
+          zip: '00000-000',
+          isDefault: true
+        },
+        notes: `Pedido via Site - Pagamento via Link Asaas`
+      });
+
+      if (orderResult.success) {
+        // 2. Abrir o link de pagamento
+        const paymentLink = 'https://www.asaas.com/c/siak23mklgcai3yb';
+        window.open(paymentLink, '_blank');
+
+        // 3. Mostrar mensagem e limpar carrinho
+        setShowAsaasMessage(true);
+        onClearCart();
+      } else {
+        alert('Erro ao processar pedido: ' + orderResult.error);
+      }
+    } catch (error) {
+      console.error('Error creating site order:', error);
+      alert('Erro inesperado ao criar pedido');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  if (items.length === 0) {
+  if (items.length === 0 && !showAsaasMessage) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-12">
         <div
@@ -88,6 +186,7 @@ export const Cart: React.FC<CartProps> = ({
             Explorar Loja
           </button>
         </div>
+        {asaasModal}
       </div>
     );
   }
@@ -279,13 +378,13 @@ export const Cart: React.FC<CartProps> = ({
                   💡 Precisa combinar o frete? Fale conosco pelo WhatsApp!
                 </p>
                 <button
-                  onClick={() => window.open('https://wa.me/5598970019366?text=Olá! Gostaria de combinar o valor do frete para meu pedido.', '_blank')}
+                  onClick={() => window.open('https://wa.me/5598985381823?text=Olá! Gostaria de combinar o valor do frete para meu pedido.', '_blank')}
                   className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.149-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.123-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
                   </svg>
-                  WhatsApp: (98) 97001-9366
+                  WhatsApp: (98) 98538-1823
                 </button>
               </div>
             </div>
@@ -331,13 +430,13 @@ export const Cart: React.FC<CartProps> = ({
                 Antes de prosseguir, entre em contato para combinar o valor do frete:
               </p>
               <button
-                onClick={() => window.open('https://wa.me/5598970019366?text=Olá! Gostaria de combinar o valor do frete para meu pedido.', '_blank')}
+                onClick={() => window.open('https://wa.me/5598985381823?text=Olá! Gostaria de combinar o valor do frete para meu pedido.', '_blank')}
                 className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.149-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.123-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
                 </svg>
-                WhatsApp: (98) 97001-9366
+                WhatsApp: (98) 98538-1823
               </button>
             </div>
 
@@ -428,15 +527,20 @@ export const Cart: React.FC<CartProps> = ({
                 onClick={handleDirectPayment}
                 className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                </svg>
-                Pagar com Asaas
+                {isProcessing ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                )}
+                {isProcessing ? 'Processando...' : 'Pagar com Asaas'}
               </button>
             </div>
           </div>
         </div>
       )}
+      {asaasModal}
     </div>
   );
 };

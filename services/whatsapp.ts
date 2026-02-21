@@ -1,7 +1,7 @@
 import type { Order, CartItem } from '../types';
 
 // Número padrão para notificações (número da loja/admin)
-const DEFAULT_WHATSAPP_NUMBER = '+55 98 970019366';
+const DEFAULT_WHATSAPP_NUMBER = '+55 98 985381823';
 
 // URL base do site - será usada para gerar links de rastreamento
 const getBaseUrl = () => {
@@ -98,16 +98,16 @@ const formatCurrency = (value: number): string => {
 export const sendOrderNotification = (order: Order, isRetirada: boolean = true): void => {
   const trackingLink = generateOrderTrackingLink(order.id);
   const message = formatOrderMessage(order, trackingLink, isRetirada);
-  
+
   // Formata o número de telefone
   const formattedPhone = formatPhoneNumber(DEFAULT_WHATSAPP_NUMBER);
-  
+
   // Codifica a mensagem para URL
   const encodedMessage = encodeURIComponent(message);
-  
+
   // Gera o link do WhatsApp
   const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
-  
+
   // Abre em nova aba
   window.open(whatsappUrl, '_blank');
 };
@@ -117,7 +117,7 @@ export const sendOrderNotification = (order: Order, isRetirada: boolean = true):
  */
 export const sendCustomerNotification = (order: Order, customerPhone: string): void => {
   const trackingLink = generateOrderTrackingLink(order.id);
-  
+
   const message = `*${'🛍️'} Gessi.Elegance*
 
 Olá ${order.userName}! Recebemos seu pedido #${order.orderNumber}.
@@ -134,7 +134,7 @@ https://gessielegance.com`;
   const formattedPhone = formatPhoneNumber(customerPhone);
   const encodedMessage = encodeURIComponent(message);
   const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
-  
+
   window.open(whatsappUrl, '_blank');
 };
 
