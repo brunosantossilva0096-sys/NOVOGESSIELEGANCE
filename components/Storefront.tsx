@@ -388,15 +388,18 @@ export const Storefront: React.FC<StorefrontProps> = ({
                 </h2>
 
                 {/* Price Label */}
-                <div className="flex items-baseline gap-4 animate-in slide-in-from-left-4 fade-in duration-500 delay-300">
-                  <span className="text-2xl font-bold text-neutral-900">
-                    {(selectedProductDetails.promotionalPrice || selectedProductDetails.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                  </span>
-                  {selectedProductDetails.promotionalPrice && (
-                    <span className="text-lg text-neutral-400 line-through">
-                      {selectedProductDetails.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                <div className="flex flex-col animate-in slide-in-from-left-4 fade-in duration-500 delay-300">
+                  <div className="flex items-baseline gap-4">
+                    <span className="text-2xl font-bold text-neutral-900">
+                      {(selectedProductDetails.promotionalPrice || selectedProductDetails.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </span>
-                  )}
+                    {selectedProductDetails.promotionalPrice && (
+                      <span className="text-lg text-neutral-400 line-through">
+                        {selectedProductDetails.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-neutral-400 mt-1">ou 3x de {((selectedProductDetails.promotionalPrice || selectedProductDetails.price) / 3).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} sem juros</p>
                 </div>
 
                 {/* Premium Description Block */}

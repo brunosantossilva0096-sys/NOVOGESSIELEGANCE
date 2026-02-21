@@ -40,6 +40,10 @@ export const Checkout: React.FC<CheckoutProps> = ({
   onBack,
 }) => {
   const [step, setStep] = useState<CheckoutStep>('payment');
+
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.PIX);
   const [isProcessing, setIsProcessing] = useState(false);
   const [order, setOrder] = useState<Order | null>(null);
@@ -455,18 +459,28 @@ export const Checkout: React.FC<CheckoutProps> = ({
 
           {paymentMethod === PaymentMethod.CREDIT_CARD && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Parcelas</label>
-              <select
-                value={cardData.installments}
-                onChange={e => setCardData(p => ({ ...p, installments: Number(e.target.value) }))}
-                className="w-full border rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              >
+              <label className="block text-sm font-medium text-gray-700 mb-3">Simulação de Parcelas</label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {Array.from({ length: maxInstallments }, (_, i) => i + 1).map(n => (
-                  <option key={n} value={n}>
-                    {n}x de {formatCurrency(total / n)} {n === 1 ? '(sem juros)' : ''}
-                  </option>
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setCardData(p => ({ ...p, installments: n }))}
+                    className={`p-4 rounded-2xl border-2 text-left transition-all ${cardData.installments === n
+                      ? 'border-blue-500 bg-blue-50 ring-4 ring-blue-50'
+                      : 'border-gray-100 hover:border-blue-200 bg-white'
+                      }`}
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <span className={`text-sm font-bold ${cardData.installments === n ? 'text-blue-700' : 'text-gray-900'}`}>{n}x</span>
+                      {n === 1 && <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold uppercase">Sem Juros</span>}
+                    </div>
+                    <p className={`text-sm font-bold ${cardData.installments === n ? 'text-blue-600' : 'text-gray-700'}`}>
+                      {formatCurrency(total / n)}
+                    </p>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
           )}
 
@@ -492,7 +506,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
      STEP: Payment Method Selection
      ========================================================= */
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white rounded-2xl shadow-xl">
+    <div className="max-w-3xl mx-auto p-6 bg-white rounded-2xl shadow-xl">
       <div className="flex items-center justify-between mb-8">
         <button onClick={onBack} className="flex items-center gap-2 text-gray-500 hover:text-gray-800">
           <ArrowLeft className="w-5 h-5" /> Voltar
@@ -554,6 +568,18 @@ export const Checkout: React.FC<CheckoutProps> = ({
                   <div>
                     <p className="font-semibold text-sm">{label}</p>
                     <p className="text-xs text-gray-500">{desc}</p>
+
+                    {/* Simulação de Parcelas */}
+                    {method === PaymentMethod.CREDIT_CARD && paymentMethod === PaymentMethod.CREDIT_CARD && (
+                      <div className="mt-4 grid grid-cols-2 gap-2 animate-in slide-in-from-top-2 duration-300">
+                        {Array.from({ length: storeConfig?.paymentConfig?.maxInstallments ?? 3 }, (_, i) => i + 1).map(n => (
+                          <div key={n} className="bg-white/80 p-2 rounded-lg border border-green-100 flex justify-between items-baseline gap-1">
+                            <span className="text-[10px] font-medium text-neutral-500">{n}x</span>
+                            <span className="text-xs font-bold text-green-700">{formatCurrency(total / n)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   {paymentMethod === method && (
                     <CheckCircle2 className="w-5 h-5 text-green-500 ml-auto" />

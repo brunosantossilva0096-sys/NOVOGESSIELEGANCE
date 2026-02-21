@@ -209,6 +209,45 @@ class AuthService {
     }
   }
 
+  async deleteAddress(userId: string, addressId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const addresses = (this.currentUser?.addresses || []).filter(a => a.id !== addressId);
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ addresses })
+        .eq('id', userId);
+
+      if (error) throw error;
+      await this.fetchProfile(userId);
+
+      return { success: true, message: 'Endereço removido com sucesso' };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
+  }
+
+  async setDefaultAddress(userId: string, addressId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const addresses = (this.currentUser?.addresses || []).map(a => ({
+        ...a,
+        isDefault: a.id === addressId
+      }));
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ addresses })
+        .eq('id', userId);
+
+      if (error) throw error;
+      await this.fetchProfile(userId);
+
+      return { success: true, message: 'Endereço padrão atualizado' };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
+  }
+
   // Employee management
   async getAllEmployees(): Promise<User[]> {
     const { data, error } = await supabase

@@ -92,7 +92,7 @@ export const Cart: React.FC<CartProps> = ({
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="max-w-5xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-8 flex items-center gap-3" style={{ color: theme.colors.neutral[800] }}>
         <ShoppingBag className="w-8 h-8" style={{ color: theme.colors.primary[500] }} />
         Seu Carrinho ({items.length} {items.length === 1 ? 'item' : 'itens'})
@@ -296,7 +296,7 @@ export const Cart: React.FC<CartProps> = ({
       {showShippingModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div
-            className="bg-white rounded-2xl p-6 max-w-md w-full"
+            className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
             style={{ boxShadow: theme.shadows.pinkLg }}
           >
             <h3 className="text-xl font-bold mb-4" style={{ color: theme.colors.neutral[800] }}>

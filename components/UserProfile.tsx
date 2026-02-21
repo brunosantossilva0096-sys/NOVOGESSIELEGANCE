@@ -18,6 +18,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   onNavigateToStore,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('orders');
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [showAddressForm, setShowAddressForm] = useState(false);
@@ -132,7 +137,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Sidebar */}
         <div className="lg:w-64 flex-shrink-0">
@@ -151,27 +156,24 @@ export const UserProfile: React.FC<UserProfileProps> = ({
           <nav className="space-y-2">
             <button
               onClick={() => setActiveTab('orders')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left ${
-                activeTab === 'orders' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50 text-gray-700'
-              }`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left ${activeTab === 'orders' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50 text-gray-700'
+                }`}
             >
               <Package className="w-5 h-5" />
               Meus Pedidos
             </button>
             <button
               onClick={() => setActiveTab('addresses')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left ${
-                activeTab === 'addresses' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50 text-gray-700'
-              }`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left ${activeTab === 'addresses' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50 text-gray-700'
+                }`}
             >
               <MapPin className="w-5 h-5" />
               Endereços
             </button>
             <button
               onClick={() => setActiveTab('profile')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left ${
-                activeTab === 'profile' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50 text-gray-700'
-              }`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left ${activeTab === 'profile' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50 text-gray-700'
+                }`}
             >
               <CreditCard className="w-5 h-5" />
               Dados Pessoais
