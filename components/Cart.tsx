@@ -301,7 +301,7 @@ export const Cart: React.FC<CartProps> = ({
             style={{ boxShadow: theme.shadows.pinkLg }}
           >
             <h3 className="text-xl font-bold mb-4" style={{ color: theme.colors.neutral[800] }}>
-              Valor do Frete
+              FINALIZAÇÃO DE COMPRA
             </h3>
 
             <p className="mb-4" style={{ color: theme.colors.neutral[600] }}>
