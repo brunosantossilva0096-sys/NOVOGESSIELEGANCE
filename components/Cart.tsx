@@ -21,6 +21,7 @@ export const Cart: React.FC<CartProps> = ({
   const [showShippingModal, setShowShippingModal] = useState(false);
   const [shippingCost, setShippingCost] = useState(0);
   const [shippingInput, setShippingInput] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('pix');
 
   const subtotal = items.reduce((sum, item) => {
     const price = item.promotionalPrice || item.price;
@@ -359,15 +360,48 @@ export const Cart: React.FC<CartProps> = ({
               <h4 className="font-semibold mb-3" style={{ color: theme.colors.neutral[800] }}>Forma de Pagamento</h4>
               <div className="space-y-2">
                 <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50" style={{ borderColor: theme.colors.primary[200] }}>
-                  <input type="radio" name="payment" value="pix" defaultChecked className="w-4 h-4" />
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="pix"
+                    checked={paymentMethod === 'pix'}
+                    onChange={() => setPaymentMethod('pix')}
+                    className="w-4 h-4"
+                  />
                   <span>PIX</span>
                 </label>
+                <div>
+                  <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 mb-2" style={{ borderColor: theme.colors.primary[200] }}>
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="credit"
+                      checked={paymentMethod === 'credit'}
+                      onChange={() => setPaymentMethod('credit')}
+                      className="w-4 h-4"
+                    />
+                    <span>Cartão de Crédito (até 3x)</span>
+                  </label>
+                  {paymentMethod === 'credit' && (
+                    <div className="ml-7 grid grid-cols-1 gap-2 animate-in slide-in-from-top-2 duration-300">
+                      {[1, 2, 3].map(n => (
+                        <div key={n} className="flex justify-between items-center p-2 bg-white rounded-lg border border-gray-100 shadow-sm text-sm">
+                          <span className="text-gray-500 font-medium">{n}x de</span>
+                          <span className="font-bold text-green-600">{formatCurrency(total / n)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50" style={{ borderColor: theme.colors.primary[200] }}>
-                  <input type="radio" name="payment" value="credit" className="w-4 h-4" />
-                  <span>Cartão de Crédito (até 3x)</span>
-                </label>
-                <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50" style={{ borderColor: theme.colors.primary[200] }}>
-                  <input type="radio" name="payment" value="debit" className="w-4 h-4" />
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="debit"
+                    checked={paymentMethod === 'debit'}
+                    onChange={() => setPaymentMethod('debit')}
+                    className="w-4 h-4"
+                  />
                   <span>Cartão de Débito</span>
                 </label>
               </div>
