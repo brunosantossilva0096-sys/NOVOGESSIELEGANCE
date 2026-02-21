@@ -98,6 +98,10 @@ export const Cart: React.FC<CartProps> = ({
   };
 
   const handleProceedToPayment = () => {
+    if (!user) {
+      onCheckout(); // Redireciona para o login via App.tsx
+      return;
+    }
     setShowShippingModal(true);
   };
 
@@ -114,10 +118,10 @@ export const Cart: React.FC<CartProps> = ({
     try {
       // 1. Criar o pedido no Supabase primeiro
       const orderResult = await orderService.createOrder({
-        userId: user?.id || 'guest',
-        userName: user?.name || 'Cliente Site',
-        userEmail: user?.email || 'venda.site@gessielegance.com',
-        userPhone: user?.phone || '',
+        userId: user!.id,
+        userName: user!.name,
+        userEmail: user!.email,
+        userPhone: user!.phone || '',
         items,
         subtotal,
         shippingCost,
@@ -352,19 +356,25 @@ export const Cart: React.FC<CartProps> = ({
               onClick={handleProceedToPayment}
               className="w-full text-white py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2"
               style={{
-                background: `linear-gradient(135deg, ${theme.colors.primary[500]} 0%, ${theme.colors.primary[600]} 100%)`,
-                boxShadow: theme.shadows.pink
+                background: user
+                  ? `linear-gradient(135deg, ${theme.colors.primary[500]} 0%, ${theme.colors.primary[600]} 100%)`
+                  : `linear-gradient(135deg, ${theme.colors.neutral[500]} 0%, ${theme.colors.neutral[600]} 100%)`,
+                boxShadow: user ? theme.shadows.pink : 'none'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = theme.shadows.pinkLg;
-                e.currentTarget.style.transform = 'translateY(-2px)';
+                if (user) {
+                  e.currentTarget.style.boxShadow = theme.shadows.pinkLg;
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = theme.shadows.pink;
-                e.currentTarget.style.transform = 'translateY(0)';
+                if (user) {
+                  e.currentTarget.style.boxShadow = theme.shadows.pink;
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }
               }}
             >
-              Prosseguir com Compra <ArrowRight className="w-5 h-5" />
+              {user ? 'Prosseguir com Compra' : 'Entrar para Comprar'} <ArrowRight className="w-5 h-5" />
             </button>
 
             <div className="mt-6 space-y-2">
