@@ -1,4 +1,4 @@
-import { db } from './database';
+import { supabase } from './supabase';
 import type { User } from '../types';
 
 export interface AuthCredentials {
@@ -22,32 +22,49 @@ export interface AuthResponse {
   message?: string;
 }
 
-const generateId = () => Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-
-const hashPassword = async (password: string): Promise<string> => {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-};
-
-const generateToken = (): string => {
-  return Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
-};
-
 class AuthService {
   private currentUser: User | null = null;
-  private authToken: string | null = null;
+  private session: any = null;
 
   async init(): Promise<void> {
-    await db.init();
-    // Restore session from localStorage
-    const storedToken = localStorage.getItem('auth_token');
-    const storedUser = localStorage.getItem('auth_user');
-    if (storedToken && storedUser) {
-      this.authToken = storedToken;
-      this.currentUser = JSON.parse(storedUser);
+    const { data: { session }, error } = await supabase.auth.getSession();
+    this.session = session;
+
+    if (session?.user) {
+      await this.fetchProfile(session.user.id);
+    }
+
+    // Subscribe to auth changes
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      this.session = session;
+      if (session?.user) {
+        await this.fetchProfile(session.user.id);
+      } else {
+        this.currentUser = null;
+      }
+    });
+  }
+
+  private async fetchProfile(userId: string): Promise<void> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (data) {
+      this.currentUser = {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        cpf: data.cpf,
+        phone: data.phone,
+        addresses: data.addresses || [],
+        role: data.role,
+        isActive: data.is_active,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
     }
   }
 
@@ -56,7 +73,7 @@ class AuthService {
   }
 
   isAuthenticated(): boolean {
-    return !!this.currentUser && !!this.authToken;
+    return !!this.currentUser && !!this.session;
   }
 
   isAdmin(): boolean {
@@ -67,186 +84,73 @@ class AuthService {
     return this.currentUser?.role === 'employee' || this.currentUser?.role === 'admin';
   }
 
-  // Employee management (admin only)
-  async createEmployee(data: RegisterData): Promise<AuthResponse> {
-    try {
-      // Check if user already exists
-      const existingUser = await db.getUserByEmail(data.email);
-      if (existingUser) {
-        return { success: false, message: 'Este e-mail já está cadastrado' };
-      }
-
-      // Hash password
-      const hashedPassword = await hashPassword(data.password);
-
-      // Create employee user
-      const newUser: User = {
-        id: generateId(),
-        name: data.name,
-        email: data.email.toLowerCase(),
-        password: hashedPassword,
-        cpf: data.cpf,
-        phone: data.phone,
-        birthDate: data.birthDate,
-        addresses: [],
-        role: 'employee',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-
-      await db.addUser(newUser);
-
-      return {
-        success: true,
-        user: { ...newUser, password: undefined },
-        message: 'Funcionário cadastrado com sucesso'
-      };
-    } catch (error) {
-      console.error('Create employee error:', error);
-      return { success: false, message: 'Erro ao cadastrar funcionário. Tente novamente.' };
-    }
-  }
-
-  async getAllEmployees(): Promise<User[]> {
-    try {
-      const users = await db.getAllUsers();
-      return users.filter(u => u.role === 'employee');
-    } catch (error) {
-      console.error('Get employees error:', error);
-      return [];
-    }
-  }
-
-  async toggleUserStatus(userId: string): Promise<{ success: boolean; message: string }> {
-    try {
-      const user = await db.getUserById(userId);
-      if (!user) {
-        return { success: false, message: 'Usuário não encontrado' };
-      }
-
-      user.isActive = !user.isActive;
-      user.updatedAt = new Date().toISOString();
-      await db.updateUser(user);
-
-      return {
-        success: true,
-        message: user.isActive ? 'Usuário ativado com sucesso' : 'Usuário desativado com sucesso'
-      };
-    } catch (error) {
-      console.error('Toggle user status error:', error);
-      return { success: false, message: 'Erro ao alterar status do usuário' };
-    }
-  }
-
   async register(data: RegisterData): Promise<AuthResponse> {
     try {
-      // Check if user already exists
-      const existingUser = await db.getUserByEmail(data.email);
-      if (existingUser) {
-        return { success: false, message: 'Este e-mail já está cadastrado' };
-      }
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            name: data.name,
+            cpf: data.cpf,
+            phone: data.phone
+          }
+        }
+      });
 
-      // Hash password
-      const hashedPassword = await hashPassword(data.password);
+      if (error) throw error;
 
-      // Create user
-      const newUser: User = {
-        id: generateId(),
-        name: data.name,
-        email: data.email.toLowerCase(),
-        password: hashedPassword,
-        cpf: data.cpf,
-        phone: data.phone,
-        birthDate: data.birthDate,
-        addresses: [],
-        role: 'customer',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+      return {
+        success: true,
+        message: 'Cadastro realizado com sucesso! Verifique seu e-mail.'
       };
-
-      await db.addUser(newUser);
-
-      // Auto login after registration
-      return this.login({ email: data.email, password: data.password });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration error:', error);
-      return { success: false, message: 'Erro ao criar conta. Tente novamente.' };
+      return { success: false, message: error.message || 'Erro ao criar conta.' };
     }
   }
 
   async login(credentials: AuthCredentials): Promise<AuthResponse> {
     try {
-      const user = await db.getUserByEmail(credentials.email);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password
+      });
 
-      if (!user) {
-        return { success: false, message: 'E-mail ou senha incorretos' };
+      if (error) throw error;
+
+      if (data.user) {
+        await this.fetchProfile(data.user.id);
       }
 
-      if (!user.isActive) {
+      if (this.currentUser && !this.currentUser.isActive) {
+        await this.logout();
         return { success: false, message: 'Conta desativada. Entre em contato com o suporte.' };
       }
 
-      const hashedPassword = await hashPassword(credentials.password);
-
-      if (user.password !== hashedPassword) {
-        return { success: false, message: 'E-mail ou senha incorretos' };
-      }
-
-      // Update last login
-      user.lastLogin = new Date().toISOString();
-      await db.updateUser(user);
-
-      // Generate token
-      const token = generateToken();
-
-      // Save session
-      this.currentUser = { ...user, password: undefined };
-      this.authToken = token;
-      localStorage.setItem('auth_token', token);
-      localStorage.setItem('auth_user', JSON.stringify(this.currentUser));
-
       return {
         success: true,
-        user: this.currentUser,
-        token,
+        user: this.currentUser || undefined,
+        token: data.session?.access_token,
         message: 'Login realizado com sucesso'
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      return { success: false, message: 'Erro ao fazer login. Tente novamente.' };
+      return { success: false, message: 'E-mail ou senha incorretos' };
     }
   }
 
-  logout(): void {
+  async logout(): Promise<void> {
+    await supabase.auth.signOut();
     this.currentUser = null;
-    this.authToken = null;
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
+    this.session = null;
     localStorage.removeItem('cart');
   }
 
   async requestPasswordReset(email: string): Promise<{ success: boolean; message: string }> {
     try {
-      const user = await db.getUserByEmail(email);
-
-      if (!user) {
-        // Don't reveal if user exists for security
-        return { success: true, message: 'Se o e-mail existir, você receberá instruções de recuperação.' };
-      }
-
-      // Generate reset token
-      const resetToken = generateToken();
-      const resetTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
-
-      user.resetToken = resetToken;
-      user.resetTokenExpiry = resetTokenExpiry;
-      await db.updateUser(user);
-
-      // In a real app, send email here
-      console.log(`Password reset token for ${email}: ${resetToken}`);
-
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if (error) throw error;
       return { success: true, message: 'Se o e-mail existir, você receberá instruções de recuperação.' };
     } catch (error) {
       console.error('Password reset request error:', error);
@@ -254,215 +158,48 @@ class AuthService {
     }
   }
 
-  async resetPassword(token: string, newPassword: string): Promise<{ success: boolean; message: string }> {
-    try {
-      const user = await db.getUserByResetToken(token);
-
-      if (!user) {
-        return { success: false, message: 'Token inválido ou expirado.' };
-      }
-
-      // Check if token is expired
-      if (user.resetTokenExpiry && new Date(user.resetTokenExpiry) < new Date()) {
-        return { success: false, message: 'Token expirado. Solicite uma nova recuperação.' };
-      }
-
-      // Update password
-      const hashedPassword = await hashPassword(newPassword);
-      user.password = hashedPassword;
-      user.resetToken = undefined;
-      user.resetTokenExpiry = undefined;
-      await db.updateUser(user);
-
-      return { success: true, message: 'Senha alterada com sucesso!' };
-    } catch (error) {
-      console.error('Password reset error:', error);
-      return { success: false, message: 'Erro ao alterar senha.' };
-    }
-  }
-
   async updateProfile(userId: string, data: Partial<User>): Promise<{ success: boolean; message: string; user?: User }> {
     try {
-      const user = await db.getUserById(userId);
-      if (!user) {
-        return { success: false, message: 'Usuário não encontrado' };
-      }
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: data.name,
+          cpf: data.cpf,
+          phone: data.phone,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
 
-      // Don't allow updating sensitive fields
-      delete data.id;
-      delete data.password;
-      delete data.role;
-      delete data.resetToken;
-      delete data.resetTokenExpiry;
-
-      const updatedUser = { ...user, ...data, updatedAt: new Date().toISOString() };
-      await db.updateUser(updatedUser);
-
-      // Update current user if it's the same user
-      if (this.currentUser?.id === userId) {
-        this.currentUser = { ...updatedUser, password: undefined };
-        localStorage.setItem('auth_user', JSON.stringify(this.currentUser));
-      }
+      if (error) throw error;
+      await this.fetchProfile(userId);
 
       return {
         success: true,
         message: 'Perfil atualizado com sucesso',
-        user: { ...updatedUser, password: undefined }
+        user: this.currentUser || undefined
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Update profile error:', error);
-      return { success: false, message: 'Erro ao atualizar perfil' };
-    }
-  }
-
-  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> {
-    try {
-      const user = await db.getUserById(userId);
-      if (!user || !user.password) {
-        return { success: false, message: 'Usuário não encontrado' };
-      }
-
-      const hashedCurrentPassword = await hashPassword(currentPassword);
-      if (user.password !== hashedCurrentPassword) {
-        return { success: false, message: 'Senha atual incorreta' };
-      }
-
-      const hashedNewPassword = await hashPassword(newPassword);
-      user.password = hashedNewPassword;
-      user.updatedAt = new Date().toISOString();
-      await db.updateUser(user);
-
-      return { success: true, message: 'Senha alterada com sucesso' };
-    } catch (error) {
-      console.error('Change password error:', error);
-      return { success: false, message: 'Erro ao alterar senha' };
+      return { success: false, message: error.message || 'Erro ao atualizar perfil' };
     }
   }
 
   // Address management
-  async addAddress(userId: string, address: Omit<import('../types').Address, 'id'>): Promise<{ success: boolean; message: string; user?: User }> {
+  async addAddress(userId: string, address: any): Promise<{ success: boolean; message: string; user?: User }> {
     try {
-      const user = await db.getUserById(userId);
-      if (!user) {
-        return { success: false, message: 'Usuário não encontrado' };
-      }
+      const addresses = [...(this.currentUser?.addresses || []), { ...address, id: crypto.randomUUID() }];
 
-      const newAddress = {
-        ...address,
-        id: generateId(),
-        isDefault: user.addresses.length === 0 // First address is default
-      };
+      const { error } = await supabase
+        .from('profiles')
+        .update({ addresses })
+        .eq('id', userId);
 
-      user.addresses.push(newAddress);
-      user.updatedAt = new Date().toISOString();
-      await db.updateUser(user);
+      if (error) throw error;
+      await this.fetchProfile(userId);
 
-      // Update current user
-      if (this.currentUser?.id === userId) {
-        this.currentUser = { ...user, password: undefined };
-        localStorage.setItem('auth_user', JSON.stringify(this.currentUser));
-      }
-
-      return {
-        success: true,
-        message: 'Endereço adicionado com sucesso',
-        user: { ...user, password: undefined }
-      };
-    } catch (error) {
-      console.error('Add address error:', error);
-      return { success: false, message: 'Erro ao adicionar endereço' };
-    }
-  }
-
-  async updateAddress(userId: string, addressId: string, data: Partial<import('../types').Address>): Promise<{ success: boolean; message: string; user?: User }> {
-    try {
-      const user = await db.getUserById(userId);
-      if (!user) {
-        return { success: false, message: 'Usuário não encontrado' };
-      }
-
-      const addressIndex = user.addresses.findIndex(a => a.id === addressId);
-      if (addressIndex === -1) {
-        return { success: false, message: 'Endereço não encontrado' };
-      }
-
-      user.addresses[addressIndex] = { ...user.addresses[addressIndex], ...data };
-      user.updatedAt = new Date().toISOString();
-      await db.updateUser(user);
-
-      // Update current user
-      if (this.currentUser?.id === userId) {
-        this.currentUser = { ...user, password: undefined };
-        localStorage.setItem('auth_user', JSON.stringify(this.currentUser));
-      }
-
-      return {
-        success: true,
-        message: 'Endereço atualizado com sucesso',
-        user: { ...user, password: undefined }
-      };
-    } catch (error) {
-      console.error('Update address error:', error);
-      return { success: false, message: 'Erro ao atualizar endereço' };
-    }
-  }
-
-  async deleteAddress(userId: string, addressId: string): Promise<{ success: boolean; message: string; user?: User }> {
-    try {
-      const user = await db.getUserById(userId);
-      if (!user) {
-        return { success: false, message: 'Usuário não encontrado' };
-      }
-
-      user.addresses = user.addresses.filter(a => a.id !== addressId);
-      user.updatedAt = new Date().toISOString();
-      await db.updateUser(user);
-
-      // Update current user
-      if (this.currentUser?.id === userId) {
-        this.currentUser = { ...user, password: undefined };
-        localStorage.setItem('auth_user', JSON.stringify(this.currentUser));
-      }
-
-      return {
-        success: true,
-        message: 'Endereço removido com sucesso',
-        user: { ...user, password: undefined }
-      };
-    } catch (error) {
-      console.error('Delete address error:', error);
-      return { success: false, message: 'Erro ao remover endereço' };
-    }
-  }
-
-  async setDefaultAddress(userId: string, addressId: string): Promise<{ success: boolean; message: string; user?: User }> {
-    try {
-      const user = await db.getUserById(userId);
-      if (!user) {
-        return { success: false, message: 'Usuário não encontrado' };
-      }
-
-      user.addresses = user.addresses.map(a => ({
-        ...a,
-        isDefault: a.id === addressId
-      }));
-      user.updatedAt = new Date().toISOString();
-      await db.updateUser(user);
-
-      // Update current user
-      if (this.currentUser?.id === userId) {
-        this.currentUser = { ...user, password: undefined };
-        localStorage.setItem('auth_user', JSON.stringify(this.currentUser));
-      }
-
-      return {
-        success: true,
-        message: 'Endereço padrão atualizado',
-        user: { ...user, password: undefined }
-      };
-    } catch (error) {
-      console.error('Set default address error:', error);
-      return { success: false, message: 'Erro ao definir endereço padrão' };
+      return { success: true, message: 'Endereço adicionado com sucesso', user: this.currentUser || undefined };
+    } catch (error: any) {
+      return { success: false, message: error.message };
     }
   }
 }

@@ -9,3 +9,4 @@ export { pdfService } from './pdf';
 export { emailService } from './email';
 export { whatsappService } from './whatsapp';
 export { initializeServices } from './initialize';
+export { supabase } from './supabase';

@@ -1,449 +1,419 @@
-import type { Product, User, Order, Payment, Category, ShippingMethod, StoreConfig } from '../types';
-
-const DB_NAME = 'GessiEleganceDB';
-const DB_VERSION = 1;
+import { supabase } from './supabase';
+import type { Product, User, Order, Category, ShippingMethod, StoreConfig } from '../types';
 
 export class DatabaseService {
-  private db: IDBDatabase | null = null;
-
   async init(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
-        this.db = request.result;
-        resolve();
-      };
-
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-
-        // Products store
-        if (!db.objectStoreNames.contains('products')) {
-          const productStore = db.createObjectStore('products', { keyPath: 'id' });
-          productStore.createIndex('categoryId', 'categoryId', { unique: false });
-          productStore.createIndex('isActive', 'isActive', { unique: false });
-          productStore.createIndex('name', 'name', { unique: false });
-        }
-
-        // Users store
-        if (!db.objectStoreNames.contains('users')) {
-          const userStore = db.createObjectStore('users', { keyPath: 'id' });
-          userStore.createIndex('email', 'email', { unique: true });
-          userStore.createIndex('role', 'role', { unique: false });
-          userStore.createIndex('resetToken', 'resetToken', { unique: false });
-        }
-
-        // Orders store
-        if (!db.objectStoreNames.contains('orders')) {
-          const orderStore = db.createObjectStore('orders', { keyPath: 'id' });
-          orderStore.createIndex('userId', 'userId', { unique: false });
-          orderStore.createIndex('status', 'status', { unique: false });
-          orderStore.createIndex('paymentStatus', 'paymentStatus', { unique: false });
-          orderStore.createIndex('orderNumber', 'orderNumber', { unique: true });
-          orderStore.createIndex('createdAt', 'createdAt', { unique: false });
-        }
-
-        // Payments store
-        if (!db.objectStoreNames.contains('payments')) {
-          const paymentStore = db.createObjectStore('payments', { keyPath: 'id' });
-          paymentStore.createIndex('orderId', 'orderId', { unique: false });
-          paymentStore.createIndex('userId', 'userId', { unique: false });
-          paymentStore.createIndex('asaasPaymentId', 'asaasPaymentId', { unique: false });
-        }
-
-        // Categories store
-        if (!db.objectStoreNames.contains('categories')) {
-          const categoryStore = db.createObjectStore('categories', { keyPath: 'id' });
-          categoryStore.createIndex('slug', 'slug', { unique: true });
-          categoryStore.createIndex('parentId', 'parentId', { unique: false });
-          categoryStore.createIndex('order', 'order', { unique: false });
-        }
-
-        // Shipping Methods store
-        if (!db.objectStoreNames.contains('shippingMethods')) {
-          const shippingStore = db.createObjectStore('shippingMethods', { keyPath: 'id' });
-          shippingStore.createIndex('isActive', 'isActive', { unique: false });
-        }
-
-        // Store Config
-        if (!db.objectStoreNames.contains('storeConfig')) {
-          db.createObjectStore('storeConfig', { keyPath: 'id' });
-        }
-
-        // Cart (session-based)
-        if (!db.objectStoreNames.contains('carts')) {
-          const cartStore = db.createObjectStore('carts', { keyPath: 'userId' });
-        }
-      };
-    });
-  }
-
-  private getStore(storeName: string, mode: IDBTransactionMode = 'readonly'): IDBObjectStore {
-    if (!this.db) throw new Error('Database not initialized');
-    const transaction = this.db.transaction(storeName, mode);
-    return transaction.objectStore(storeName);
-  }
-
-  // Generic CRUD operations
-  private async getAll<T>(storeName: string): Promise<T[]> {
-    return new Promise((resolve, reject) => {
-      const store = this.getStore(storeName);
-      const request = store.getAll();
-      request.onsuccess = () => resolve(request.result as T[]);
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  private async getById<T>(storeName: string, id: string): Promise<T | undefined> {
-    return new Promise((resolve, reject) => {
-      const store = this.getStore(storeName);
-      const request = store.get(id);
-      request.onsuccess = () => resolve(request.result as T);
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  private async add<T>(storeName: string, data: T): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const store = this.getStore(storeName, 'readwrite');
-      const request = store.add(data);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  private async put<T>(storeName: string, data: T): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const store = this.getStore(storeName, 'readwrite');
-      const request = store.put(data);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  private async delete(storeName: string, id: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const store = this.getStore(storeName, 'readwrite');
-      const request = store.delete(id);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  private async getByIndex<T>(storeName: string, indexName: string, value: IDBValidKey): Promise<T[]> {
-    return new Promise((resolve, reject) => {
-      const store = this.getStore(storeName);
-      const index = store.index(indexName);
-      const request = index.getAll(value);
-      request.onsuccess = () => resolve(request.result as T[]);
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  private async getOneByIndex<T>(storeName: string, indexName: string, value: IDBValidKey): Promise<T | undefined> {
-    return new Promise((resolve, reject) => {
-      const store = this.getStore(storeName);
-      const index = store.index(indexName);
-      const request = index.get(value);
-      request.onsuccess = () => resolve(request.result as T);
-      request.onerror = () => reject(request.error);
-    });
+    // Supabase doesn't need client-side initialization after setup
+    return Promise.resolve();
   }
 
   // Products
   async getAllProducts(): Promise<Product[]> {
-    return this.getAll<Product>('products');
+    const { data, error } = await supabase
+      .from('products')
+      .select('*, categories(name)');
+
+    if (error) throw error;
+    return (data || []).map(p => this.mapProduct(p));
   }
 
   async getActiveProducts(): Promise<Product[]> {
-    const all = await this.getAll<Product>('products');
-    return all.filter(p => p.isActive);
+    const { data, error } = await supabase
+      .from('products')
+      .select('*, categories(name)')
+      .eq('is_active', true);
+
+    if (error) throw error;
+    return (data || []).map(p => this.mapProduct(p));
   }
 
   async getProductById(id: string): Promise<Product | undefined> {
-    return this.getById<Product>('products', id);
+    const { data, error } = await supabase
+      .from('products')
+      .select('*, categories(name)')
+      .eq('id', id)
+      .single();
+
+    if (error) return undefined;
+    return this.mapProduct(data);
   }
 
   async getProductsByCategory(categoryId: string): Promise<Product[]> {
-    return this.getByIndex<Product>('products', 'categoryId', categoryId);
+    const { data, error } = await supabase
+      .from('products')
+      .select('*, categories(name)')
+      .eq('category_id', categoryId);
+
+    if (error) throw error;
+    return (data || []).map(p => this.mapProduct(p));
   }
 
   async addProduct(product: Product): Promise<void> {
-    return this.add('products', product);
+    const { error } = await supabase
+      .from('products')
+      .insert(this.mapProductToDb(product));
+
+    if (error) throw error;
   }
 
   async updateProduct(product: Product): Promise<void> {
-    return this.put('products', { ...product, updatedAt: new Date().toISOString() });
+    const { error } = await supabase
+      .from('products')
+      .update(this.mapProductToDb(product))
+      .eq('id', product.id);
+
+    if (error) throw error;
   }
 
   async deleteProduct(id: string): Promise<void> {
-    return this.delete('products', id);
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
   }
 
-  // Users
+  // Users (Profiles)
   async getAllUsers(): Promise<User[]> {
-    return this.getAll<User>('users');
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*');
+
+    if (error) throw error;
+    return (data || []).map(u => this.mapUser(u));
   }
 
   async getUserById(id: string): Promise<User | undefined> {
-    return this.getById<User>('users', id);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) return undefined;
+    return this.mapUser(data);
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return this.getOneByIndex<User>('users', 'email', email.toLowerCase());
-  }
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('email', email.toLowerCase())
+      .single();
 
-  async getUserByResetToken(token: string): Promise<User | undefined> {
-    return this.getOneByIndex<User>('users', 'resetToken', token);
+    if (error) return undefined;
+    return this.mapUser(data);
   }
 
   async addUser(user: User): Promise<void> {
-    return this.add('users', { ...user, email: user.email.toLowerCase() });
+    const { error } = await supabase
+      .from('profiles')
+      .insert(this.mapUserToDb(user));
+
+    if (error) throw error;
   }
 
   async updateUser(user: User): Promise<void> {
-    return this.put('users', { ...user, updatedAt: new Date().toISOString() });
+    const { error } = await supabase
+      .from('profiles')
+      .update(this.mapUserToDb(user))
+      .eq('id', user.id);
+
+    if (error) throw error;
   }
 
   async deleteUser(id: string): Promise<void> {
-    return this.delete('users', id);
+    const { error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
   }
 
   // Orders
   async getAllOrders(): Promise<Order[]> {
-    return this.getAll<Order>('orders');
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, order_items(*)');
+
+    if (error) throw error;
+    return (data || []).map(o => this.mapOrder(o));
   }
 
   async getOrderById(id: string): Promise<Order | undefined> {
-    return this.getById<Order>('orders', id);
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, order_items(*)')
+      .eq('id', id)
+      .single();
+
+    if (error) return undefined;
+    return this.mapOrder(data);
   }
 
   async getOrderByNumber(orderNumber: string): Promise<Order | undefined> {
-    return this.getOneByIndex<Order>('orders', 'orderNumber', orderNumber);
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, order_items(*)')
+      .eq('order_number', orderNumber)
+      .single();
+
+    if (error) return undefined;
+    return this.mapOrder(data);
   }
 
   async getOrdersByUser(userId: string): Promise<Order[]> {
-    return this.getByIndex<Order>('orders', 'userId', userId);
-  }
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, order_items(*)')
+      .eq('user_id', userId);
 
-  async getOrdersByStatus(status: string): Promise<Order[]> {
-    return this.getByIndex<Order>('orders', 'status', status);
+    if (error) throw error;
+    return (data || []).map(o => this.mapOrder(o));
   }
 
   async addOrder(order: Order): Promise<void> {
-    return this.add('orders', order);
+    const { error: orderError } = await supabase
+      .from('orders')
+      .insert(this.mapOrderToDb(order));
+
+    if (orderError) throw orderError;
+
+    const items = order.items.map(item => ({
+      order_id: order.id,
+      product_id: item.productId,
+      name: item.name,
+      price: item.promotionalPrice || item.price,
+      quantity: item.quantity,
+      size: item.size,
+      color: item.color
+    }));
+
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(items);
+
+    if (itemsError) throw itemsError;
   }
 
   async updateOrder(order: Order): Promise<void> {
-    return this.put('orders', { ...order, updatedAt: new Date().toISOString() });
-  }
+    const { error } = await supabase
+      .from('orders')
+      .update(this.mapOrderToDb(order))
+      .eq('id', order.id);
 
-  // Payments
-  async getAllPayments(): Promise<Payment[]> {
-    return this.getAll<Payment>('payments');
-  }
-
-  async getPaymentById(id: string): Promise<Payment | undefined> {
-    return this.getById<Payment>('payments', id);
-  }
-
-  async getPaymentByOrderId(orderId: string): Promise<Payment | undefined> {
-    const payments = await this.getByIndex<Payment>('payments', 'orderId', orderId);
-    return payments[0];
-  }
-
-  async getPaymentByAsaasId(asaasId: string): Promise<Payment | undefined> {
-    return this.getOneByIndex<Payment>('payments', 'asaasPaymentId', asaasId);
-  }
-
-  async addPayment(payment: Payment): Promise<void> {
-    return this.add('payments', payment);
-  }
-
-  async updatePayment(payment: Payment): Promise<void> {
-    return this.put('payments', { ...payment, updatedAt: new Date().toISOString() });
+    if (error) throw error;
   }
 
   // Categories
   async getAllCategories(): Promise<Category[]> {
-    return this.getAll<Category>('categories');
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('order', { ascending: true });
+
+    if (error) throw error;
+    return (data || []).map(c => this.mapCategory(c));
   }
 
   async getActiveCategories(): Promise<Category[]> {
-    const all = await this.getAllCategories();
-    return all.filter(c => c.isActive).sort((a, b) => a.order - b.order);
-  }
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('is_active', true)
+      .order('order', { ascending: true });
 
-  async getCategoryById(id: string): Promise<Category | undefined> {
-    return this.getById<Category>('categories', id);
-  }
-
-  async getCategoryBySlug(slug: string): Promise<Category | undefined> {
-    return this.getOneByIndex<Category>('categories', 'slug', slug);
+    if (error) throw error;
+    return (data || []).map(c => this.mapCategory(c));
   }
 
   async addCategory(category: Category): Promise<void> {
-    return this.add('categories', category);
+    const { error } = await supabase
+      .from('categories')
+      .insert(this.mapCategoryToDb(category));
+
+    if (error) throw error;
   }
 
   async updateCategory(category: Category): Promise<void> {
-    return this.put('categories', category);
+    const { error } = await supabase
+      .from('categories')
+      .update(this.mapCategoryToDb(category))
+      .eq('id', category.id);
+
+    if (error) throw error;
   }
 
   async deleteCategory(id: string): Promise<void> {
-    return this.delete('categories', id);
-  }
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', id);
 
-  // Shipping Methods
-  async getAllShippingMethods(): Promise<ShippingMethod[]> {
-    return this.getAll<ShippingMethod>('shippingMethods');
-  }
-
-  async getActiveShippingMethods(): Promise<ShippingMethod[]> {
-    const all = await this.getAll<ShippingMethod>('shippingMethods');
-    return all.filter(m => m.isActive);
-  }
-
-  async getShippingMethodById(id: string): Promise<ShippingMethod | undefined> {
-    return this.getById<ShippingMethod>('shippingMethods', id);
-  }
-
-  async addShippingMethod(method: ShippingMethod): Promise<void> {
-    return this.add('shippingMethods', method);
-  }
-
-  async updateShippingMethod(method: ShippingMethod): Promise<void> {
-    return this.put('shippingMethods', method);
-  }
-
-  async deleteShippingMethod(id: string): Promise<void> {
-    return this.delete('shippingMethods', id);
+    if (error) throw error;
   }
 
   // Store Config
   async getStoreConfig(): Promise<StoreConfig | undefined> {
-    const configs = await this.getAll<StoreConfig>('storeConfig');
-    return configs[0];
+    // We assume there's only one config record in public config
+    // (This would ideally be in a public table or fetched via function)
+    const { data, error } = await supabase
+      .from('categories') // Placeholder as we didn't create a config table yet
+      .select('*')
+      .limit(1)
+      .maybeSingle();
+
+    return undefined; // TODO: Implement store_config table if needed
   }
 
-  async saveStoreConfig(config: StoreConfig): Promise<void> {
-    return this.put('storeConfig', { ...config, updatedAt: new Date().toISOString() });
+  // Mapping Helpers
+  private mapProduct(p: any): Product {
+    return {
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      price: Number(p.price),
+      costPrice: p.cost_price ? Number(p.cost_price) : undefined,
+      promotionalPrice: p.promotional_price ? Number(p.promotional_price) : undefined,
+      images: p.images || [],
+      category: p.categories?.name || '',
+      categoryId: p.category_id,
+      stock: p.stock,
+      minStock: p.min_stock,
+      sizes: p.sizes || [],
+      colors: p.colors || [],
+      tags: p.tags || [],
+      isActive: p.is_active,
+      createdAt: p.created_at,
+      updatedAt: p.updated_at
+    };
   }
 
-  // Cart persistence
-  async getCart(userId: string): Promise<unknown> {
-    return this.getById('carts', userId);
+  private mapProductToDb(p: Product) {
+    return {
+      name: p.name,
+      description: p.description,
+      price: p.price,
+      cost_price: p.costPrice,
+      promotional_price: p.promotionalPrice,
+      images: p.images,
+      category_id: p.categoryId,
+      stock: p.stock,
+      min_stock: p.minStock,
+      sizes: p.sizes,
+      colors: p.colors,
+      tags: p.tags,
+      is_active: p.isActive
+    };
   }
 
-  async saveCart(userId: string, cart: unknown): Promise<void> {
-    return this.put('carts', { userId, data: cart, updatedAt: new Date().toISOString() });
+  private mapUser(u: any): User {
+    return {
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      cpf: u.cpf,
+      phone: u.phone,
+      addresses: u.addresses || [],
+      role: u.role,
+      isActive: u.is_active,
+      createdAt: u.created_at,
+      updatedAt: u.updated_at
+    };
   }
 
-  async clearCart(userId: string): Promise<void> {
-    return this.delete('carts', userId);
+  private mapUserToDb(u: User) {
+    return {
+      name: u.name,
+      email: u.email,
+      cpf: u.cpf,
+      phone: u.phone,
+      role: u.role,
+      is_active: u.isActive
+    };
   }
 
-  // Initialize with sample data
-  async seedInitialData(): Promise<void> {
-    const existingCategories = await this.getAllCategories();
-    if (existingCategories.length > 0) return;
+  private mapOrder(o: any): Order {
+    return {
+      id: o.id,
+      orderNumber: o.order_number,
+      userId: o.user_id,
+      userName: o.user_name,
+      userEmail: o.user_email,
+      userPhone: o.user_phone,
+      total: Number(o.total),
+      subtotal: Number(o.subtotal),
+      shippingCost: Number(o.shipping_cost),
+      discount: Number(o.discount),
+      status: o.status,
+      paymentMethod: o.payment_method,
+      paymentStatus: o.payment_status,
+      paymentId: o.payment_id,
+      paymentQrCode: o.payment_qr_code,
+      paymentLink: o.payment_link,
+      shippingMethod: o.shipping_method,
+      shippingAddress: o.shipping_address,
+      createdAt: o.created_at,
+      updatedAt: o.updated_at,
+      items: (o.order_items || []).map((i: any) => ({
+        productId: i.product_id,
+        name: i.name,
+        price: Number(i.price),
+        quantity: i.quantity,
+        size: i.size,
+        color: i.color
+      }))
+    };
+  }
 
-    // Sample categories
-    const categories: Category[] = [
-      { id: 'cat-1', name: 'Vestidos', slug: 'vestidos', description: 'Vestidos elegantes para todas as ocasiões', order: 1, isActive: true, createdAt: new Date().toISOString() },
-      { id: 'cat-2', name: 'Blusas', slug: 'blusas', description: 'Blusas e camisas femininas', order: 2, isActive: true, createdAt: new Date().toISOString() },
-      { id: 'cat-3', name: 'Calças', slug: 'calcas', description: 'Calças e leggings', order: 3, isActive: true, createdAt: new Date().toISOString() },
-      { id: 'cat-4', name: 'Saias', slug: 'saias', description: 'Saias de todos os estilos', order: 4, isActive: true, createdAt: new Date().toISOString() },
-      { id: 'cat-5', name: 'Acessórios', slug: 'acessorios', description: 'Bolsas, cintos e acessórios', order: 5, isActive: true, createdAt: new Date().toISOString() }
-    ];
+  private mapOrderToDb(o: Order) {
+    return {
+      order_number: o.orderNumber,
+      user_id: o.userId,
+      user_name: o.userName,
+      user_email: o.userEmail,
+      user_phone: o.userPhone,
+      subtotal: o.subtotal,
+      shipping_cost: o.shippingCost,
+      discount: o.discount,
+      total: o.total,
+      status: o.status,
+      payment_method: o.paymentMethod,
+      payment_status: o.paymentStatus,
+      payment_id: o.paymentId,
+      payment_qr_code: o.paymentQrCode,
+      payment_link: o.paymentLink,
+      shipping_method: o.shippingMethod,
+      shipping_address: o.shippingAddress,
+      tracking_code: o.trackingCode,
+      notes: o.notes
+    };
+  }
 
-    for (const cat of categories) {
-      await this.addCategory(cat);
-    }
+  private mapCategory(c: any): Category {
+    return {
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      description: c.description,
+      image: c.image,
+      order: c.order,
+      isActive: c.is_active,
+      createdAt: c.created_at
+    };
+  }
 
-    // Sample shipping methods
-    const shippingMethods: ShippingMethod[] = [
-      { id: 'ship-1', name: 'Correios PAC', type: 'correios', provider: 'correios', cost: 15.90, estimatedDays: '7-10 dias úteis', isActive: true },
-      { id: 'ship-2', name: 'Correios SEDEX', type: 'correios', provider: 'correios', cost: 29.90, estimatedDays: '2-3 dias úteis', isActive: true },
-      { id: 'ship-3', name: 'Retirada na Loja', type: 'retirada', cost: 0, estimatedDays: 'Disponível em 24h', isActive: true },
-      { id: 'ship-4', name: 'Entrega Local (Motoboy)', type: 'motoboy', cost: 12.00, estimatedDays: 'Mesmo dia', isActive: true }
-    ];
-
-    for (const method of shippingMethods) {
-      await this.addShippingMethod(method);
-    }
-
-    // Sample products
-    const products: Product[] = [
-      {
-        id: 'prod-1',
-        name: 'Vestido Midi Elegance',
-        description: 'Vestido midi em crepe de alta qualidade. Caimento perfeito para ocasiões especiais.',
-        price: 299.90,
-        promotionalPrice: 249.90,
-        images: ['https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=600'],
-        category: 'Vestidos',
-        categoryId: 'cat-1',
-        stock: 15,
-        sizes: ['PP', 'P', 'M', 'G', 'GG'],
-        colors: [
-          { name: 'Preto', hex: '#000000' },
-          { name: 'Vinho', hex: '#722F37' },
-          { name: 'Azul Marinho', hex: '#1B3A5F' }
-        ],
-        tags: ['midi', 'elegante', 'festa'],
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        id: 'prod-2',
-        name: 'Blusa de Seda Premium',
-        description: 'Blusa em seda pura com acabamento impecável. Toque suave e caimento fluido.',
-        price: 189.90,
-        images: ['https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=600'],
-        category: 'Blusas',
-        categoryId: 'cat-2',
-        stock: 20,
-        sizes: ['PP', 'P', 'M', 'G'],
-        colors: [
-          { name: 'Branco', hex: '#FFFFFF' },
-          { name: 'Creme', hex: '#F5F5DC' },
-          { name: 'Rosa Antigo', hex: '#D4A5A5' }
-        ],
-        tags: ['seda', 'premium', 'workwear'],
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        id: 'prod-3',
-        name: 'Calça Wide Leg Linho',
-        description: 'Calça wide leg em linho natural. Conforto e estilo para o dia a dia.',
-        price: 229.90,
-        promotionalPrice: 199.90,
-        images: ['https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=600'],
-        category: 'Calças',
-        categoryId: 'cat-3',
-        stock: 12,
-        sizes: ['34', '36', '38', '40', '42', '44'],
-        colors: [
-          { name: 'Natural', hex: '#E8DCC4' },
-          { name: 'Bege', hex: '#C4A77D' },
-          { name: 'Preto', hex: '#000000' }
-        ],
-        tags: ['linho', 'wide-leg', 'casual'],
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-    ];
-
-    for (const product of products) {
-      await this.addProduct(product);
-    }
+  private mapCategoryToDb(c: Category) {
+    return {
+      name: c.name,
+      slug: c.slug,
+      description: c.description,
+      image: c.image,
+      order: c.order,
+      is_active: c.isActive
+    };
   }
 }
 
