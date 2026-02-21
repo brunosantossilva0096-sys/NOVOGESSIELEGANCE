@@ -290,12 +290,12 @@ export const Checkout: React.FC<CheckoutProps> = ({
 
         {/* Link de pagamento (Boleto / Cartão / Fallback PIX) */}
         {paymentResult?.invoiceUrl && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-5">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-3">
             <h3 className="font-semibold text-amber-900 mb-2 flex items-center gap-2">
-              <ExternalLink className="w-5 h-5" /> Link de Pagamento
+              <ExternalLink className="w-5 h-5" /> Pagamento Digital (Automático)
             </h3>
             <p className="text-sm text-amber-700 mb-3">
-              Acesse o link abaixo para concluir seu pagamento na plataforma Asaas:
+              Acesse o link gerado para seu pedido na plataforma Asaas:
             </p>
             <a
               href={paymentResult.invoiceUrl}
@@ -304,10 +304,29 @@ export const Checkout: React.FC<CheckoutProps> = ({
               className="flex items-center justify-center gap-2 w-full bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-xl font-medium transition-colors"
             >
               <ExternalLink className="w-4 h-4" />
-              Abrir Fatura Asaas
+              Abrir Fatura Automática
             </a>
           </div>
         )}
+
+        {/* Link de Pagamento Manual (Solicitado pelo Usuário) */}
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-5">
+          <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+            <ExternalLink className="w-5 h-5" /> Pagamento com Frete Combinado
+          </h3>
+          <p className="text-sm text-blue-700 mb-3">
+            Caso tenha combinado o frete e queira usar o link direto:
+          </p>
+          <a
+            href="https://www.asaas.com/c/siak23mklgcai3yb"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium transition-colors"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Pagar via Link Direto
+          </a>
+        </div>
 
         {/* Boleto */}
         {paymentResult?.bankSlipUrl && (

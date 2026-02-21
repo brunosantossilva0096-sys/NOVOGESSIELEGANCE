@@ -60,59 +60,16 @@ export const Cart: React.FC<CartProps> = ({
     onCheckout(shippingCost);
   };
 
-  const handleDirectPayment = async () => {
-    try {
-      // Criar pagamento via API Asaas diretamente do carrinho
-      const asaasToken = 'cb44adc0-3e19-4e11-b8e6-7c1a378642da';
-      
-      const paymentData = {
-        customer: 'Cliente GessiElegance',
-        email: 'cliente@gessielegance.com',
-        cpf: '00000000000',
-        phone: '00000000000',
-        value: total,
-        description: `Pedido GessiElegance - ${items.length} itens`,
-        externalReference: `cart-order-${Date.now()}`,
-        billingType: 'PIX',
-        dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        postalService: 'CORREIOS',
-        shippingCost: shippingCost,
-        shippingValue: shippingCost,
-        items: items.map(item => ({
-          description: item.name,
-          quantity: item.quantity,
-          priceCents: Math.round((item.promotionalPrice || item.price) * 100)
-        }))
-      };
-
-      const paymentResponse = await fetch('https://api.asaas.com/v3/payments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'access_token': asaasToken
-        },
-        body: JSON.stringify(paymentData)
-      });
-
-      const payment = await paymentResponse.json();
-
-      if (paymentResponse.ok && payment.id) {
-        // Abrir link de pagamento em nova aba
-        window.open(payment.invoiceUrl, '_blank');
-        alert('Pagamento gerado com sucesso! Redirecionando para Asaas...');
-      } else {
-        alert('Erro ao criar pagamento: ' + (payment.errors?.[0]?.description || 'Tente novamente'));
-      }
-    } catch (error) {
-      console.error('Payment error:', error);
-      alert('Erro ao processar pagamento. Tente novamente.');
-    }
+  const handleDirectPayment = () => {
+    // Usar o link fixo fornecido pelo cliente para pagamento após combinar o frete
+    const paymentLink = 'https://www.asaas.com/c/siak23mklgcai3yb';
+    window.open(paymentLink, '_blank');
   };
 
   if (items.length === 0) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-12">
-        <div 
+        <div
           className="text-center py-20 rounded-3xl border-2 border-dashed"
           style={{ backgroundColor: 'white', borderColor: theme.colors.primary[200] }}
         >
@@ -122,7 +79,7 @@ export const Cart: React.FC<CartProps> = ({
           <button
             onClick={onContinueShopping}
             className="text-white px-8 py-3 rounded-full font-bold transition-all hover:scale-105"
-            style={{ 
+            style={{
               background: `linear-gradient(135deg, ${theme.colors.primary[500]} 0%, ${theme.colors.primary[600]} 100%)`,
               boxShadow: theme.shadows.pink
             }}
@@ -148,7 +105,7 @@ export const Cart: React.FC<CartProps> = ({
             <div
               key={`${item.productId}-${item.size}-${item.color?.name}`}
               className="p-4 rounded-2xl flex gap-4"
-              style={{ 
+              style={{
                 backgroundColor: 'white',
                 boxShadow: theme.shadows.sm,
                 border: `1px solid ${theme.colors.primary[100]}`
@@ -258,9 +215,9 @@ export const Cart: React.FC<CartProps> = ({
 
         {/* Order Summary */}
         <div className="lg:col-span-1">
-          <div 
+          <div
             className="p-6 rounded-2xl sticky top-4"
-            style={{ 
+            style={{
               backgroundColor: 'white',
               boxShadow: theme.shadows.md,
               border: `1px solid ${theme.colors.primary[100]}`
@@ -294,7 +251,7 @@ export const Cart: React.FC<CartProps> = ({
             <button
               onClick={handleProceedToPayment}
               className="w-full text-white py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2"
-              style={{ 
+              style={{
                 background: `linear-gradient(135deg, ${theme.colors.primary[500]} 0%, ${theme.colors.primary[600]} 100%)`,
                 boxShadow: theme.shadows.pink
               }}
@@ -315,7 +272,7 @@ export const Cart: React.FC<CartProps> = ({
                 <Package className="w-4 h-4" style={{ color: theme.colors.primary[500] }} />
                 <span>Entrega digital imediata</span>
               </div>
-              
+
               <div className="bg-yellow-50 p-3 rounded-lg">
                 <p className="text-xs text-yellow-700 mb-2">
                   💡 Precisa combinar o frete? Fale conosco pelo WhatsApp!
@@ -325,7 +282,7 @@ export const Cart: React.FC<CartProps> = ({
                   className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.149-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.123-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.149-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.123-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
                   </svg>
                   WhatsApp: (98) 97001-9366
                 </button>
@@ -338,14 +295,14 @@ export const Cart: React.FC<CartProps> = ({
       {/* Modal para inserir valor do frete */}
       {showShippingModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div 
+          <div
             className="bg-white rounded-2xl p-6 max-w-md w-full"
             style={{ boxShadow: theme.shadows.pinkLg }}
           >
             <h3 className="text-xl font-bold mb-4" style={{ color: theme.colors.neutral[800] }}>
               Valor do Frete
             </h3>
-            
+
             <p className="mb-4" style={{ color: theme.colors.neutral[600] }}>
               Informe o valor do frete combinado com o vendedor:
             </p>
@@ -360,7 +317,7 @@ export const Cart: React.FC<CartProps> = ({
                 onChange={handleShippingInputChange}
                 placeholder="R$ 0,00"
                 className="w-full px-4 py-3 rounded-lg border text-lg font-medium focus:outline-none focus:ring-2"
-                style={{ 
+                style={{
                   borderColor: theme.colors.primary[200],
                   color: theme.colors.neutral[800]
                 }}
@@ -377,7 +334,7 @@ export const Cart: React.FC<CartProps> = ({
                 className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.149-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.123-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.149-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.123-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
                 </svg>
                 WhatsApp: (98) 97001-9366
               </button>
@@ -420,7 +377,7 @@ export const Cart: React.FC<CartProps> = ({
               <button
                 onClick={() => setShowShippingModal(false)}
                 className="flex-1 px-4 py-3 rounded-lg font-medium transition-all"
-                style={{ 
+                style={{
                   backgroundColor: theme.colors.neutral[100],
                   color: theme.colors.neutral[700]
                 }}
