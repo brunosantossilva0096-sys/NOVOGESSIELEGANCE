@@ -73,6 +73,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     isActive: true,
   });
 
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [categoryFormData, setCategoryFormData] = useState<Partial<Category>>({
+    name: '',
+    slug: '',
+    description: '',
+    isActive: true,
+    order: 0,
+  });
+
   useEffect(() => {
     refreshData();
   }, []);
@@ -212,6 +222,52 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       refreshData();
     } else {
       alert(result.message || 'Erro ao cadastrar funcionário');
+    }
+  };
+
+  const handleSaveCategory = async () => {
+    if (!categoryFormData.name || !categoryFormData.slug) {
+      alert('Preencha o nome e o slug da categoria');
+      return;
+    }
+
+    const category: Category = {
+      id: editingCategory || `cat-${Date.now()}`,
+      name: categoryFormData.name,
+      slug: categoryFormData.slug.toLowerCase().replace(/\s+/g, '-'),
+      description: categoryFormData.description || '',
+      image: categoryFormData.image || '',
+      order: categoryFormData.order || 0,
+      isActive: categoryFormData.isActive ?? true,
+      createdAt: categoryFormData.createdAt || new Date().toISOString(),
+    };
+
+    try {
+      if (editingCategory) {
+        await db.updateCategory(category);
+      } else {
+        await db.addCategory(category);
+      }
+
+      setEditingCategory(null);
+      setIsAddingCategory(false);
+      setCategoryFormData({ name: '', slug: '', description: '', isActive: true, order: 0 });
+      refreshData();
+    } catch (error) {
+      console.error('Error saving category:', error);
+      alert('Erro ao salvar categoria');
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta categoria? Isso pode afetar os produtos vinculados.')) return;
+
+    try {
+      await db.deleteCategory(id);
+      refreshData();
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      alert('Erro ao excluir categoria');
     }
   };
 
@@ -699,23 +755,145 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* Categories Tab */}
       {activeTab === 'categories' && (
         <div className="animate-in fade-in">
-          <h2 className="text-xl font-bold mb-6">Categorias</h2>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold">Gerenciar Categorias</h2>
+            {currentUser?.role === 'admin' && (
+              <button
+                onClick={() => { setIsAddingCategory(true); setCategoryFormData({ name: '', slug: '', description: '', isActive: true, order: 0 }); }}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" /> Nova Categoria
+              </button>
+            )}
+          </div>
+
+          {/* Category Form Modal */}
+          {(isAddingCategory || editingCategory) && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold">{editingCategory ? 'Editar' : 'Adicionar'} Categoria</h3>
+                  <button onClick={() => { setIsAddingCategory(false); setEditingCategory(null); }} className="p-2 hover:bg-gray-100 rounded-full">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Nome</label>
+                    <input
+                      type="text"
+                      className="w-full border border-gray-200 rounded-lg p-2.5"
+                      value={categoryFormData.name || ''}
+                      onChange={e => setCategoryFormData({ ...categoryFormData, name: e.target.value })}
+                      placeholder="Ex: Camisetas"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Slug (URL)</label>
+                    <input
+                      type="text"
+                      className="w-full border border-gray-200 rounded-lg p-2.5"
+                      value={categoryFormData.slug || ''}
+                      onChange={e => setCategoryFormData({ ...categoryFormData, slug: e.target.value })}
+                      placeholder="Ex: camisetas"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Descrição</label>
+                    <textarea
+                      className="w-full border border-gray-200 rounded-lg p-2.5 h-24"
+                      value={categoryFormData.description || ''}
+                      onChange={e => setCategoryFormData({ ...categoryFormData, description: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Ordem de Exibição</label>
+                    <input
+                      type="number"
+                      className="w-full border border-gray-200 rounded-lg p-2.5"
+                      value={categoryFormData.order || 0}
+                      onChange={e => setCategoryFormData({ ...categoryFormData, order: Number(e.target.value) })}
+                    />
+                  </div>
+
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={categoryFormData.isActive}
+                      onChange={e => setCategoryFormData({ ...categoryFormData, isActive: e.target.checked })}
+                    />
+                    <span className="text-sm">Categoria ativa</span>
+                  </label>
+                </div>
+
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    onClick={() => { setIsAddingCategory(false); setEditingCategory(null); }}
+                    className="px-6 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSaveCategory}
+                    className="bg-blue-600 text-white px-8 py-2.5 rounded-lg font-semibold hover:bg-blue-700 flex items-center gap-2"
+                  >
+                    <Save className="w-4 h-4" /> Salvar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {categories.map(cat => (
-              <div key={cat.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{cat.name}</h3>
-                    <p className="text-sm text-gray-500">{cat.slug}</p>
+              <div key={cat.id} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-50 rounded-lg text-blue-600 font-bold text-lg">
+                      {cat.name.charAt(0)}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 leading-none">{cat.name}</h3>
+                      <p className="text-xs text-gray-400 mt-1">/{cat.slug}</p>
+                    </div>
                   </div>
-                  <span className={`px-2 py-1 rounded text-xs ${cat.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                  <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${cat.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
                     {cat.isActive ? 'Ativa' : 'Inativa'}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600 mt-2">{cat.description || 'Sem descrição'}</p>
+
+                {cat.description && (
+                  <p className="text-sm text-gray-600 line-clamp-2 mb-4 h-10">{cat.description}</p>
+                )}
+
+                <div className="flex justify-between items-center pt-4 border-t border-gray-50">
+                  <span className="text-xs text-gray-400 font-medium">Ordem: {cat.order}</span>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => { setEditingCategory(cat.id); setCategoryFormData(cat); }}
+                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCategory(cat.id)}
+                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
               </div>
             ))}
+            {categories.length === 0 && (
+              <div className="col-span-full py-12 text-center text-gray-500 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                Nenhuma categoria cadastrada
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -924,8 +1102,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <button
                         onClick={() => handleToggleUserStatus(emp.id)}
                         className={`px-3 py-1 rounded-lg text-sm font-medium ${emp.isActive
-                            ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                            : 'bg-green-100 text-green-600 hover:bg-green-200'
+                          ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                          : 'bg-green-100 text-green-600 hover:bg-green-200'
                           }`}
                       >
                         {emp.isActive ? 'Desativar' : 'Ativar'}
