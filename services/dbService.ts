@@ -43,11 +43,11 @@ export const dbService = {
     const orders = dbService.getOrders();
     orders.push(order);
     localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
-    
+
     // Decrease stock
     const products = dbService.getProducts();
     order.items.forEach(item => {
-      const p = products.find(prod => prod.id === item.id);
+      const p = products.find(prod => prod.id === item.productId);
       if (p) p.stock = Math.max(0, p.stock - item.quantity);
     });
     localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));

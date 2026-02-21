@@ -7,70 +7,119 @@ export const INITIAL_PRODUCTS: Product[] = [
     name: 'Camiseta Minimalist Algodão Egípcio',
     description: 'Toque suave, durabilidade extrema e caimento perfeito. Ideal para o dia a dia elegante.',
     price: 129.90,
+    images: ['https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=600'],
     category: 'Masculino',
-    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=600',
-    stock: 45
+    categoryId: '1',
+    stock: 45,
+    sizes: ['P', 'M', 'G', 'GG'],
+    colors: [{ name: 'Preto', hex: '#000000' }, { name: 'Branco', hex: '#FFFFFF' }],
+    tags: ['basic', 'premium'],
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   },
   {
     id: '2',
     name: 'Vestido Midi Floral Primavera',
     description: 'Leveza e elegância em um design exclusivo. Tecido respirável de alta qualidade.',
     price: 289.00,
+    images: ['https://images.unsplash.com/photo-1572804013307-a9a111dc822d?auto=format&fit=crop&q=80&w=600'],
     category: 'Feminino',
-    image: 'https://images.unsplash.com/photo-1572804013307-a9a111dc822d?auto=format&fit=crop&q=80&w=600',
-    stock: 12
+    categoryId: '2',
+    stock: 12,
+    sizes: ['P', 'M', 'G'],
+    colors: [{ name: 'Floral', hex: '#FFB6C1' }],
+    tags: ['vestido', 'floral'],
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   },
   {
     id: '3',
     name: 'Jaqueta Bomber Couro Ecológico',
     description: 'Estilo urbano com consciência. Resistente ao vento e com forro térmico.',
     price: 459.90,
+    images: ['https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&q=80&w=600'],
     category: 'Inverno',
-    image: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&q=80&w=600',
-    stock: 8
+    categoryId: '3',
+    stock: 8,
+    sizes: ['M', 'G', 'GG'],
+    colors: [{ name: 'Marrom', hex: '#5D4037' }],
+    tags: ['inverno', 'couro'],
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   },
   {
     id: '4',
     name: 'Calça Jeans Premium Slim Fit',
     description: 'Lavagem artesanal e tecnologia stretch que garante conforto total sem perder a forma.',
     price: 199.00,
+    images: ['https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&q=80&w=600'],
     category: 'Masculino',
-    image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&q=80&w=600',
-    stock: 30
+    categoryId: '1',
+    stock: 30,
+    sizes: ['38', '40', '42', '44'],
+    colors: [{ name: 'Azul', hex: '#1A237E' }],
+    tags: ['jeans', 'slim'],
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   },
   {
     id: '5',
     name: 'Blazer Estruturado Modern Business',
     description: 'O toque de sofisticação que faltava no seu closet profissional.',
     price: 380.00,
+    images: ['https://images.unsplash.com/photo-1548142813-c348350df52b?auto=format&fit=crop&q=80&w=600'],
     category: 'Feminino',
-    image: 'https://images.unsplash.com/photo-1548142813-c348350df52b?auto=format&fit=crop&q=80&w=600',
-    stock: 15
+    categoryId: '2',
+    stock: 15,
+    sizes: ['P', 'M', 'G'],
+    colors: [{ name: 'Vinho', hex: '#880E4F' }],
+    tags: ['business', 'elegante'],
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   },
   {
     id: '6',
     name: 'Óculos de Sol Urban Style',
     description: 'Proteção UV400 com lentes polarizadas e armação ultra leve.',
     price: 150.00,
+    images: ['https://images.unsplash.com/photo-1511499767390-90342f56771f?auto=format&fit=crop&q=80&w=600'],
     category: 'Acessórios',
-    image: 'https://images.unsplash.com/photo-1511499767390-90342f56771f?auto=format&fit=crop&q=80&w=600',
-    stock: 25
+    categoryId: '4',
+    stock: 25,
+    sizes: ['Único'],
+    colors: [{ name: 'Preto', hex: '#000000' }],
+    tags: ['acessorios', 'sol'],
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   },
   {
     id: '7',
     name: 'Bota Chelsea Couro Legítimo',
     description: 'Clássico atemporal feito à mão para durar décadas.',
     price: 599.00,
+    images: ['https://images.unsplash.com/photo-1638247025967-b4e38f787b76?auto=format&fit=crop&q=80&w=600'],
     category: 'Calçados',
-    image: 'https://images.unsplash.com/photo-1638247025967-b4e38f787b76?auto=format&fit=crop&q=80&w=600',
-    stock: 10
+    categoryId: '5',
+    stock: 10,
+    sizes: ['38', '39', '40', '41', '42'],
+    colors: [{ name: 'Preto', hex: '#000000' }],
+    tags: ['calcados', 'couro'],
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   }
 ];
 
 export const CATEGORIES: Category[] = [
-  { id: '1', name: 'Masculino' },
-  { id: '2', name: 'Feminino' },
-  { id: '3', name: 'Inverno' },
-  { id: '4', name: 'Acessórios' },
-  { id: '5', name: 'Calçados' }
+  { id: '1', name: 'Masculino', slug: 'masculino', order: 1, isActive: true, createdAt: new Date().toISOString() },
+  { id: '2', name: 'Feminino', slug: 'feminino', order: 2, isActive: true, createdAt: new Date().toISOString() },
+  { id: '3', name: 'Inverno', slug: 'inverno', order: 3, isActive: true, createdAt: new Date().toISOString() },
+  { id: '4', name: 'Acessórios', slug: 'acessorios', order: 4, isActive: true, createdAt: new Date().toISOString() },
+  { id: '5', name: 'Calçados', slug: 'calcados', order: 5, isActive: true, createdAt: new Date().toISOString() }
 ];
