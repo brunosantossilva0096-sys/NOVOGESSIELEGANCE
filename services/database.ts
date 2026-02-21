@@ -158,7 +158,7 @@ export class DatabaseService {
   async getAllOrders(): Promise<Order[]> {
     const { data, error } = await supabase
       .from('orders')
-      .select('*, order_items(*)');
+      .select('*, order_items(*, products(images))');
 
     if (error) throw error;
     return (data || []).map(o => this.mapOrder(o));
@@ -167,7 +167,7 @@ export class DatabaseService {
   async getOrderById(id: string): Promise<Order | undefined> {
     const { data, error } = await supabase
       .from('orders')
-      .select('*, order_items(*)')
+      .select('*, order_items(*, products(images))')
       .eq('id', id)
       .single();
 
@@ -178,7 +178,7 @@ export class DatabaseService {
   async getOrderByNumber(orderNumber: string): Promise<Order | undefined> {
     const { data, error } = await supabase
       .from('orders')
-      .select('*, order_items(*)')
+      .select('*, order_items(*, products(images))')
       .eq('order_number', orderNumber)
       .single();
 
@@ -189,7 +189,7 @@ export class DatabaseService {
   async getOrdersByUser(userId: string): Promise<Order[]> {
     const { data, error } = await supabase
       .from('orders')
-      .select('*, order_items(*)')
+      .select('*, order_items(*, products(images))')
       .eq('user_id', userId);
 
     if (error) throw error;
@@ -215,7 +215,8 @@ export class DatabaseService {
       price: item.promotionalPrice || item.price,
       quantity: item.quantity,
       size: item.size,
-      color: item.color // Assuming JSONB column
+      color: item.color,
+      image: item.image
     }));
 
     const { error: itemsError } = await supabase
@@ -410,7 +411,9 @@ export class DatabaseService {
         price: Number(i.price),
         quantity: i.quantity,
         size: i.size,
-        color: i.color
+        color: i.color,
+        // Use current product image as primary if available, fallback to stored image
+        image: i.products?.images?.[0] || i.image || ''
       }))
     };
   }
