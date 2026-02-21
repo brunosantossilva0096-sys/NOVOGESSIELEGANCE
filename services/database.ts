@@ -238,6 +238,22 @@ export class DatabaseService {
     if (error) throw error;
   }
 
+  async deleteOrder(id: string): Promise<void> {
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .delete()
+      .eq('order_id', id);
+
+    if (itemsError) throw itemsError;
+
+    const { error: orderError } = await supabase
+      .from('orders')
+      .delete()
+      .eq('id', id);
+
+    if (orderError) throw orderError;
+  }
+
   // Categories
   async getAllCategories(): Promise<Category[]> {
     const { data, error } = await supabase

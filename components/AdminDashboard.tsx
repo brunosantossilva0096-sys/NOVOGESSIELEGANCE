@@ -57,6 +57,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     phone: '',
   });
 
+  // Delete Order states
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [isDeletingOrder, setIsDeletingOrder] = useState(false);
+
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '',
     description: '',
@@ -288,6 +294,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       refreshData();
     } catch (error) {
       console.error('Error updating order:', error);
+    }
+  };
+
+  const handleDeleteOrder = async () => {
+    if (!orderToDelete || !adminPassword) return;
+
+    setIsDeletingOrder(true);
+    try {
+      const isValid = await auth.verifyPassword(adminPassword);
+      if (!isValid) {
+        alert('Senha incorreta!');
+        setIsDeletingOrder(false);
+        return;
+      }
+
+      const result = await orderService.deleteOrder(orderToDelete);
+      if (result.success) {
+        setShowDeleteConfirm(false);
+        setOrderToDelete(null);
+        setAdminPassword('');
+        refreshData();
+      } else {
+        alert(result.error);
+      }
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      alert('Erro ao excluir pedido');
+    } finally {
+      setIsDeletingOrder(false);
     }
   };
 
@@ -720,6 +755,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <th className="px-6 py-4 font-semibold text-sm">Data</th>
                   <th className="px-6 py-4 font-semibold text-sm">Total</th>
                   <th className="px-6 py-4 font-semibold text-sm">Status</th>
+                  <th className="px-6 py-4 font-semibold text-sm text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -742,6 +778,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <option key={s} value={s}>{getStatusBadge(s).label}</option>
                         ))}
                       </select>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {currentUser?.role === 'admin' && (
+                        <button
+                          onClick={() => {
+                            setOrderToDelete(o.id);
+                            setShowDeleteConfirm(true);
+                          }}
+                          className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                          title="Excluir Lançamento"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -982,6 +1032,60 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               ))}
             </div>
           </div>
+
+          {/* Detailed Transactions List */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-6 border-b border-gray-100">
+              <h3 className="font-bold text-gray-900">Últimos Lançamentos Detalhados</h3>
+            </div>
+            <table className="w-full text-left">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-6 py-4 font-semibold text-sm">Cód.</th>
+                  <th className="px-6 py-4 font-semibold text-sm">Cliente/Venda</th>
+                  <th className="px-6 py-4 font-semibold text-sm">Data</th>
+                  <th className="px-6 py-4 font-semibold text-sm">Pagamento</th>
+                  <th className="px-6 py-4 font-semibold text-sm">Total</th>
+                  <th className="px-6 py-4 font-semibold text-sm text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {orders.slice(0, 20).map(o => (
+                  <tr key={o.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium">#{o.orderNumber}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{o.userName}</td>
+                    <td className="px-6 py-4 text-sm">{formatDate(o.createdAt)}</td>
+                    <td className="px-6 py-4">
+                      <span className="text-xs font-medium px-2 py-1 bg-gray-100 rounded">
+                        {o.paymentMethod === 'PIX' ? 'PIX' :
+                          o.paymentMethod === 'CREDIT_CARD' ? 'Crédito' :
+                            o.paymentMethod === 'DEBIT_CARD' ? 'Débito' :
+                              o.paymentMethod === 'CASH' ? 'Dinheiro' : 'Boleto'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 font-bold text-gray-900">{formatCurrency(o.total)}</td>
+                    <td className="px-6 py-4 text-right">
+                      {currentUser?.role === 'admin' && (
+                        <button
+                          onClick={() => {
+                            setOrderToDelete(o.id);
+                            setShowDeleteConfirm(true);
+                          }}
+                          className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                          title="Remover Lançamento"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {orders.length === 0 && (
+              <div className="py-12 text-center text-gray-500">Nenhum lançamento encontrado</div>
+            )}
+          </div>
         </div>
       )}
 
@@ -1129,6 +1233,68 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
             <h3 className="text-lg font-bold text-yellow-800 mb-2">Acesso Restrito</h3>
             <p className="text-yellow-700">Apenas administradores podem gerenciar funcionários.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in zoom-in duration-200">
+            <div className="flex items-center gap-3 mb-4 text-red-600">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-bold">Confirmar Exclusão</h3>
+            </div>
+
+            <p className="text-gray-600 mb-6">
+              Esta ação é irreversível. O lançamento será removido permanentemente do histórico financeiro e do estoque.
+              <br /><br />
+              <strong>Por favor, insira sua senha de administrador:</strong>
+            </p>
+
+            <input
+              type="password"
+              className="w-full border border-gray-300 rounded-xl p-3 mb-6 focus:ring-2 focus:ring-red-500 outline-none transition-all"
+              placeholder="Sua senha de admin"
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleDeleteOrder()}
+              autoFocus
+            />
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setOrderToDelete(null);
+                  setAdminPassword('');
+                }}
+                className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors"
+                disabled={isDeletingOrder}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteOrder}
+                className={`flex-1 py-3 px-4 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all ${isDeletingOrder ? 'bg-red-400' : 'bg-red-600 hover:bg-red-700 shadow-lg shadow-red-200'
+                  }`}
+                disabled={isDeletingOrder}
+              >
+                {isDeletingOrder ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Excluir
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -365,6 +365,16 @@ class OrderService {
       dailyBreakdown,
     };
   }
+
+  async deleteOrder(id: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await db.deleteOrder(id);
+      return { success: true };
+    } catch (error) {
+      console.error('Delete order error:', error);
+      return { success: false, error: 'Erro ao excluir pedido' };
+    }
+  }
 }
 
 export const orderService = new OrderService();

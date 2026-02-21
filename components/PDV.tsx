@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db, orderService, auth } from '../services';
+import { db, orderService, auth, pdfService } from '../services';
 import type { Product, CartItem, Order, User } from '../types';
 import { OrderStatus, PaymentStatus, PaymentMethod } from '../types';
 import {
@@ -190,7 +190,15 @@ export const PDV: React.FC<PDVProps> = ({ onClose, currentUser }) => {
   };
 
   const printReceipt = () => {
-    window.print();
+    if (lastOrder) {
+      pdfService.openReceipt({
+        order: lastOrder,
+        storeName: 'Novage Gessi Elegance',
+        storeAddress: 'Rua das Flores, 123 - Centro',
+        storePhone: '(11) 99999-9999',
+        storeEmail: 'contato@gessielegance.com'
+      });
+    }
   };
 
   if (showReceipt && lastOrder) {
@@ -218,17 +226,17 @@ export const PDV: React.FC<PDVProps> = ({ onClose, currentUser }) => {
           <div className="border-t border-b py-4 mb-4" style={{ borderColor: theme.colors.primary[100] }}>
             <div className="flex justify-between mb-2">
               <span style={{ color: theme.colors.neutral[600] }}>Subtotal:</span>
-              <span style={{ color: theme.colors.neutral[800] }}>{formatCurrency(subtotal)}</span>
+              <span style={{ color: theme.colors.neutral[800] }}>{formatCurrency(lastOrder.subtotal)}</span>
             </div>
-            {discount > 0 && (
+            {lastOrder.discount > 0 && (
               <div className="flex justify-between mb-2">
                 <span style={{ color: theme.colors.neutral[600] }}>Desconto:</span>
-                <span style={{ color: theme.colors.success }}>-{formatCurrency(discount)}</span>
+                <span style={{ color: theme.colors.success }}>-{formatCurrency(lastOrder.discount)}</span>
               </div>
             )}
             <div className="flex justify-between text-xl font-bold">
               <span style={{ color: theme.colors.neutral[800] }}>Total:</span>
-              <span style={{ color: theme.colors.primary[600] }}>{formatCurrency(total)}</span>
+              <span style={{ color: theme.colors.primary[600] }}>{formatCurrency(lastOrder.total)}</span>
             </div>
             <div className="flex justify-between mt-2 text-sm">
               <span style={{ color: theme.colors.neutral[500] }}>Pagamento:</span>

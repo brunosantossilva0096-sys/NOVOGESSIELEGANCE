@@ -312,6 +312,19 @@ class AuthService {
       return { success: false, message: error.message };
     }
   }
+
+  async verifyPassword(password: string): Promise<boolean> {
+    if (!this.currentUser?.email) return false;
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: this.currentUser.email,
+        password: password
+      });
+      return !error;
+    } catch (error) {
+      return false;
+    }
+  }
 }
 
 export const auth = new AuthService();
