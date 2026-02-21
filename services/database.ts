@@ -433,6 +433,7 @@ export class DatabaseService {
       slug: c.slug,
       description: c.description,
       image: c.image,
+      parent_id: c.parentId,
       order: c.order,
       is_active: c.isActive
     };
