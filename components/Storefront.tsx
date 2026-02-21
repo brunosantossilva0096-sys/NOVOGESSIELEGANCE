@@ -87,7 +87,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
                 border: '1px solid rgba(255,255,255,0.3)'
               }}
             >
-              ✨ Nova Coleção 2024
+              ✨ Nova Coleção 2026
             </span>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
               Moda Elegante para{' '}
@@ -145,8 +145,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
                 <Truck className="w-6 h-6" style={{ color: theme.colors.primary[600] }} />
               </div>
               <div>
-                <h3 className="font-semibold" style={{ color: theme.colors.neutral[800] }}>Frete Grátis</h3>
-                <p className="text-sm" style={{ color: theme.colors.neutral[500] }}>Em compras acima de R$ 299</p>
+                <h3 className="font-semibold" style={{ color: theme.colors.neutral[800] }}>Frete FULL</h3>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -155,7 +154,6 @@ export const Storefront: React.FC<StorefrontProps> = ({
               </div>
               <div>
                 <h3 className="font-semibold" style={{ color: theme.colors.neutral[800] }}>Compra Segura</h3>
-                <p className="text-sm" style={{ color: theme.colors.neutral[500] }}>Pagamento protegido</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -164,7 +162,6 @@ export const Storefront: React.FC<StorefrontProps> = ({
               </div>
               <div>
                 <h3 className="font-semibold" style={{ color: theme.colors.neutral[800] }}>Entrega Rápida</h3>
-                <p className="text-sm" style={{ color: theme.colors.neutral[500] }}>Receba em até 7 dias</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -173,7 +170,6 @@ export const Storefront: React.FC<StorefrontProps> = ({
               </div>
               <div>
                 <h3 className="font-semibold" style={{ color: theme.colors.neutral[800] }}>Qualidade Premium</h3>
-                <p className="text-sm" style={{ color: theme.colors.neutral[500] }}>Materiais selecionados</p>
               </div>
             </div>
           </div>
