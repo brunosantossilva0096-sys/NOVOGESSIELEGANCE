@@ -38,9 +38,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
   };
 
   return (
-    <div 
+    <div
       className="group rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl"
-      style={{ 
+      style={{
         backgroundColor: 'white',
         boxShadow: theme.shadows.sm,
         border: `1px solid ${theme.colors.primary[100]}`
@@ -61,10 +61,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
-        
+
         {/* Discount Badge */}
         {hasDiscount && (
-          <div 
+          <div
             className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold"
             style={{ backgroundColor: theme.colors.error, color: 'white' }}
           >
@@ -86,8 +86,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
       </div>
 
       {/* Product Info */}
-      <div className="p-4">
-        <h3 
+      <div className="p-4 relative">
+        {/* Description Reveal Effect */}
+        <div className="absolute inset-0 bg-white/95 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] z-10 flex flex-col justify-center">
+          <p
+            className="text-sm leading-relaxed italic opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-100"
+            style={{ color: theme.colors.neutral[600] }}
+          >
+            {product.description || 'Nenhuma descrição disponível.'}
+          </p>
+          <div className="mt-4 w-12 h-0.5 bg-pink-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 delay-300 origin-left" />
+        </div>
+
+        <h3
           className="font-semibold text-lg mb-2 cursor-pointer hover:text-pink-600 transition-colors line-clamp-2"
           style={{ color: theme.colors.neutral[800] }}
           onClick={onClick}
@@ -166,7 +177,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
       {/* Add to Cart Modal */}
       {showOptions && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div 
+          <div
             className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
             style={{ boxShadow: theme.shadows.pinkLg }}
           >
@@ -258,7 +269,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
               <button
                 onClick={() => setShowOptions(false)}
                 className="flex-1 px-4 py-3 rounded-lg font-medium transition-all"
-                style={{ 
+                style={{
                   backgroundColor: theme.colors.neutral[100],
                   color: theme.colors.neutral[700]
                 }}
@@ -268,7 +279,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
               <button
                 onClick={handleAddToCart}
                 className="flex-1 px-4 py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-2"
-                style={{ 
+                style={{
                   backgroundColor: theme.colors.primary[500],
                   boxShadow: theme.shadows.pink
                 }}

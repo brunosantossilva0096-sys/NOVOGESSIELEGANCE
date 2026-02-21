@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../services';
 import { ProductCard } from './ProductCard';
-import { Search, ArrowRight, ShoppingBag, Sparkles, Truck, Shield, Clock } from 'lucide-react';
+import { Search, ArrowRight, ShoppingBag, Sparkles, Truck, Shield, Clock, X } from 'lucide-react';
 import type { Product, Category } from '../types';
 import { theme } from '../theme';
 
@@ -20,6 +20,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedProductDetails, setSelectedProductDetails] = useState<Product | null>(null);
 
   useEffect(() => {
     loadProducts();
@@ -39,7 +40,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
 
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-                         p.description.toLowerCase().includes(search.toLowerCase());
+      p.description.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = !selectedCategory || p.categoryId === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -62,9 +63,9 @@ export const Storefront: React.FC<StorefrontProps> = ({
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
           <div className="max-w-2xl">
-            <span 
+            <span
               className="inline-block px-5 py-2 rounded-full text-sm font-semibold mb-6 backdrop-blur-sm"
-              style={{ 
+              style={{
                 backgroundColor: 'rgba(255,255,255,0.2)',
                 color: 'white',
                 border: '1px solid rgba(255,255,255,0.3)'
@@ -83,7 +84,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
               <button
                 onClick={() => document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })}
                 className="inline-flex items-center justify-center gap-2 text-white px-8 py-4 rounded-full font-semibold transition-all hover:scale-105 shadow-xl"
-                style={{ 
+                style={{
                   background: `linear-gradient(135deg, ${theme.colors.neutral[900]} 0%, ${theme.colors.neutral[800]} 100%)`,
                   boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
                 }}
@@ -100,7 +101,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
               </button>
               <button
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-semibold transition-all hover:scale-105 backdrop-blur-sm"
-                style={{ 
+                style={{
                   backgroundColor: 'rgba(255,255,255,0.15)',
                   color: 'white',
                   border: '1px solid rgba(255,255,255,0.4)'
@@ -172,7 +173,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
                 <Sparkles className="w-6 h-6" style={{ color: theme.colors.primary[500] }} />
                 Destaques
               </h2>
-              <button 
+              <button
                 className="text-sm font-medium flex items-center gap-1 transition-all hover:gap-2"
                 style={{ color: theme.colors.primary[600] }}
                 onClick={() => document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })}
@@ -186,7 +187,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
                   key={product.id}
                   product={product}
                   onAddToCart={onAddToCart}
-                  onClick={() => onProductClick?.(product)}
+                  onClick={() => setSelectedProductDetails(product)}
                 />
               ))}
             </div>
@@ -213,7 +214,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
                 type="text"
                 placeholder="Buscar produtos..."
                 className="w-full pl-12 pr-4 py-3 rounded-full focus:outline-none transition-all"
-                style={{ 
+                style={{
                   backgroundColor: theme.colors.primary[50],
                   border: `2px solid ${theme.colors.primary[200]}`,
                   color: theme.colors.neutral[800]
@@ -237,7 +238,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
             <button
               onClick={() => setSelectedCategory(null)}
               className="px-5 py-2.5 rounded-full text-sm font-medium transition-all"
-              style={{ 
+              style={{
                 backgroundColor: !selectedCategory ? theme.colors.primary[600] : 'white',
                 color: !selectedCategory ? 'white' : theme.colors.neutral[600],
                 border: `2px solid ${!selectedCategory ? theme.colors.primary[600] : theme.colors.primary[200]}`,
@@ -261,7 +262,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
                 className="px-5 py-2.5 rounded-full text-sm font-medium transition-all"
-                style={{ 
+                style={{
                   backgroundColor: selectedCategory === cat.id ? theme.colors.primary[600] : 'white',
                   color: selectedCategory === cat.id ? 'white' : theme.colors.neutral[600],
                   border: `2px solid ${selectedCategory === cat.id ? theme.colors.primary[600] : theme.colors.primary[200]}`,
@@ -301,7 +302,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
                     key={product.id}
                     product={product}
                     onAddToCart={onAddToCart}
-                    onClick={() => onProductClick?.(product)}
+                    onClick={() => setSelectedProductDetails(product)}
                   />
                 ))}
               </div>
@@ -326,15 +327,15 @@ export const Storefront: React.FC<StorefrontProps> = ({
               type="email"
               placeholder="Seu e-mail"
               className="flex-1 px-4 py-3 rounded-full focus:outline-none"
-              style={{ 
+              style={{
                 backgroundColor: 'rgba(255,255,255,0.1)',
                 border: `1px solid rgba(255,255,255,0.2)`,
                 color: 'white'
               }}
             />
-            <button 
+            <button
               className="px-6 py-3 rounded-full font-semibold transition-all hover:scale-105 text-white"
-              style={{ 
+              style={{
                 background: `linear-gradient(135deg, ${theme.colors.primary[500]} 0%, ${theme.colors.primary[600]} 100%)`,
                 boxShadow: theme.shadows.pink
               }}
@@ -344,6 +345,92 @@ export const Storefront: React.FC<StorefrontProps> = ({
           </div>
         </div>
       </section>
+
+      {/* Luxury Quick View Modal */}
+      {selectedProductDetails && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 lg:p-8 animate-in fade-in duration-300">
+          <div
+            className="absolute inset-0 bg-neutral-900/60 backdrop-blur-sm"
+            onClick={() => setSelectedProductDetails(null)}
+          />
+
+          <div className="relative bg-white w-full max-w-5xl rounded-[2rem] overflow-hidden shadow-2xl flex flex-col md:flex-row animate-in slide-in-from-bottom-8 duration-500 ease-out">
+            <button
+              onClick={() => setSelectedProductDetails(null)}
+              className="absolute top-6 right-6 z-50 p-3 bg-white/80 backdrop-blur rounded-full hover:bg-white transition-colors border border-neutral-100"
+            >
+              <X className="w-5 h-5 text-neutral-800" />
+            </button>
+
+            {/* Visual Column */}
+            <div className="w-full md:w-1/2 aspect-square md:aspect-auto h-[300px] md:h-auto overflow-hidden bg-neutral-50 relative group">
+              <img
+                src={selectedProductDetails.images[0] || '/placeholder-product.jpg'}
+                alt={selectedProductDetails.name}
+                className="w-full h-full object-cover animate-in zoom-in-110 duration-1000 ease-out"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+            </div>
+
+            {/* Content Column - Staggered Reveal */}
+            <div className="w-full md:w-1/2 p-8 md:p-12 lg:p-16 flex flex-col justify-center overflow-y-auto max-h-[60vh] md:max-h-none">
+              <div className="space-y-8">
+                {/* Brand / Category Tag */}
+                <div className="animate-in slide-in-from-left-4 fade-in duration-500 delay-100">
+                  <span className="text-xs font-bold tracking-[0.2em] uppercase text-pink-500">
+                    {categories.find(c => c.id === selectedProductDetails.categoryId)?.name || 'Coleção Elegance'}
+                  </span>
+                </div>
+
+                {/* Title */}
+                <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-neutral-900 animate-in slide-in-from-left-4 fade-in duration-500 delay-200">
+                  {selectedProductDetails.name}
+                </h2>
+
+                {/* Price Label */}
+                <div className="flex items-baseline gap-4 animate-in slide-in-from-left-4 fade-in duration-500 delay-300">
+                  <span className="text-2xl font-bold text-neutral-900">
+                    {(selectedProductDetails.promotionalPrice || selectedProductDetails.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </span>
+                  {selectedProductDetails.promotionalPrice && (
+                    <span className="text-lg text-neutral-400 line-through">
+                      {selectedProductDetails.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </span>
+                  )}
+                </div>
+
+                {/* Premium Description Block */}
+                <div className="relative animate-in slide-in-from-left-4 fade-in duration-700 delay-400">
+                  <div className="absolute -left-6 top-0 bottom-0 w-[1px] bg-neutral-100 hidden lg:block" />
+                  <p className="text-lg text-neutral-600 leading-relaxed font-light italic">
+                    "{selectedProductDetails.description || 'Uma peça exclusiva desenhada para realçar sua essência e sofisticação.'}"
+                  </p>
+                </div>
+
+                {/* CTA / Action */}
+                <div className="pt-6 animate-in slide-in-from-bottom-4 fade-in duration-500 delay-500">
+                  <button
+                    onClick={() => {
+                      onAddToCart({
+                        productId: selectedProductDetails.id,
+                        name: selectedProductDetails.name,
+                        price: selectedProductDetails.price,
+                        promotionalPrice: selectedProductDetails.promotionalPrice,
+                        image: selectedProductDetails.images[0] || '',
+                        quantity: 1
+                      });
+                      setSelectedProductDetails(null);
+                    }}
+                    className="w-full md:w-auto px-12 py-4 bg-neutral-900 text-white rounded-full font-semibold hover:bg-neutral-800 transition-all hover:scale-105 shadow-2xl"
+                  >
+                    Adicionar ao Carrinho
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
