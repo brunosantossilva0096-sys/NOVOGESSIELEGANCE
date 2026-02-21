@@ -551,9 +551,9 @@ export const Checkout: React.FC<CheckoutProps> = ({
           <h3 className="font-semibold text-gray-700 mb-4">Método de Pagamento</h3>
           <div className="space-y-3">
             {[
-              { method: PaymentMethod.PIX, icon: <QrCode className="w-6 h-6 text-green-500" />, label: 'PIX', desc: 'Pagamento instantâneo — aprovação imediata' },
-              { method: PaymentMethod.CREDIT_CARD, icon: <CreditCard className="w-6 h-6 text-blue-500" />, label: 'Cartão de Crédito', desc: `Parcele em até ${storeConfig?.paymentConfig?.maxInstallments ?? 3}x` },
+              { method: PaymentMethod.PIX, icon: <QrCode className="w-6 h-6 text-green-500" />, label: 'PIX/Boleto', desc: 'Pagamento instantâneo ou por boleto' },
               { method: PaymentMethod.DEBIT_CARD, icon: <CreditCard className="w-6 h-6 text-indigo-500" />, label: 'Cartão de Débito', desc: 'Débito na hora' },
+              { method: PaymentMethod.CREDIT_CARD, icon: <CreditCard className="w-6 h-6 text-blue-500" />, label: 'Cartão de Crédito', desc: `Parcele em até ${storeConfig?.paymentConfig?.maxInstallments ?? 3}x` },
             ].map(({ method, icon, label, desc }) => (
               <button
                 key={method}

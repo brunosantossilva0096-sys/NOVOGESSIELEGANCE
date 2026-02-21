@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { db, orderService, auth } from '../services';
-import type { Product, CartItem, Order } from '../types';
+import type { Product, CartItem, Order, User } from '../types';
 import { OrderStatus, PaymentStatus, PaymentMethod } from '../types';
-import { 
-  ShoppingCart, Plus, Minus, Trash2, Calculator, Banknote, 
-  CreditCard, QrCode, X, Check, Search, Package, User,
+import {
+  ShoppingCart, Plus, Minus, Trash2, Calculator, Banknote,
+  CreditCard, QrCode, X, Check, Search, Package, User as UserIcon,
   ArrowRight, Receipt, Printer
 } from 'lucide-react';
 import { theme } from '../theme';
 
 interface PDVProps {
   onClose: () => void;
+  currentUser: User | null;
 }
 
-export const PDV: React.FC<PDVProps> = ({ onClose }) => {
+export const PDV: React.FC<PDVProps> = ({ onClose, currentUser }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -53,21 +54,21 @@ export const PDV: React.FC<PDVProps> = ({ onClose }) => {
 
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         p.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()));
+      p.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
     return matchesSearch && matchesCategory && p.stock > 0;
   });
 
   const addToCart = (product: Product) => {
     const existingItem = cart.find(item => item.productId === product.id);
-    
+
     if (existingItem) {
       if (existingItem.quantity >= product.stock) {
         alert('Estoque insuficiente');
         return;
       }
-      setCart(cart.map(item => 
-        item.productId === product.id 
+      setCart(cart.map(item =>
+        item.productId === product.id
           ? { ...item, quantity: item.quantity + 1 }
           : item
       ));
@@ -92,8 +93,8 @@ export const PDV: React.FC<PDVProps> = ({ onClose }) => {
         alert('Estoque insuficiente');
         return;
       }
-      setCart(cart.map(item => 
-        item.productId === productId 
+      setCart(cart.map(item =>
+        item.productId === productId
           ? { ...item, quantity }
           : item
       ));
@@ -131,10 +132,8 @@ export const PDV: React.FC<PDVProps> = ({ onClose }) => {
     setIsProcessing(true);
 
     try {
-      const currentUser = auth.getCurrentUser();
-      
       const orderResult = await orderService.createOrder({
-        userId: currentUser?.id || 'pdv-user',
+        userId: currentUser?.id || '', // Empty string or null if allowed
         userName: customerName || 'Cliente PDV',
         userEmail: currentUser?.email || 'pdv@gessielegance.com',
         userPhone: customerPhone,
@@ -163,7 +162,7 @@ export const PDV: React.FC<PDVProps> = ({ onClose }) => {
           zip: '00000-000',
           isDefault: true
         },
-        notes: `Venda PDV - Atendente: ${currentUser?.name || 'Sistema'}`
+        notes: `Venda PDV - Atendente: ${currentUser?.name || 'Sistema'} `
       });
 
       if (orderResult.success && orderResult.order) {
@@ -180,7 +179,7 @@ export const PDV: React.FC<PDVProps> = ({ onClose }) => {
         setShowReceipt(true);
         clearCart();
       } else {
-        alert('Erro ao criar venda');
+        alert('Erro ao criar venda: ' + (orderResult.error || 'Erro desconhecido'));
       }
     } catch (error) {
       console.error('PDV sale error:', error);
@@ -197,12 +196,12 @@ export const PDV: React.FC<PDVProps> = ({ onClose }) => {
   if (showReceipt && lastOrder) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div 
+        <div
           className="bg-white rounded-2xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto"
           style={{ boxShadow: theme.shadows.xl }}
         >
           <div className="text-center mb-6">
-            <div 
+            <div
               className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
               style={{ backgroundColor: theme.colors.success + '20' }}
             >
@@ -235,9 +234,9 @@ export const PDV: React.FC<PDVProps> = ({ onClose }) => {
               <span style={{ color: theme.colors.neutral[500] }}>Pagamento:</span>
               <span style={{ color: theme.colors.neutral[700] }}>
                 {paymentMethod === PaymentMethod.CASH ? 'Dinheiro' :
-                 paymentMethod === PaymentMethod.CREDIT_CARD ? 'Cartão de Crédito' :
-                 paymentMethod === PaymentMethod.DEBIT_CARD ? 'Cartão de Débito' :
-                 paymentMethod === PaymentMethod.PIX ? 'PIX' : 'Boleto'}
+                  paymentMethod === PaymentMethod.CREDIT_CARD ? 'Cartão de Crédito' :
+                    paymentMethod === PaymentMethod.DEBIT_CARD ? 'Cartão de Débito' :
+                      paymentMethod === PaymentMethod.PIX ? 'PIX' : 'Boleto'}
               </span>
             </div>
           </div>
@@ -246,7 +245,7 @@ export const PDV: React.FC<PDVProps> = ({ onClose }) => {
             <button
               onClick={printReceipt}
               className="w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2"
-              style={{ 
+              style={{
                 backgroundColor: theme.colors.primary[100],
                 color: theme.colors.primary[700]
               }}
@@ -260,8 +259,8 @@ export const PDV: React.FC<PDVProps> = ({ onClose }) => {
                 onClose();
               }}
               className="w-full py-3 rounded-xl font-semibold text-white"
-              style={{ 
-                background: `linear-gradient(135deg, ${theme.colors.primary[500]} 0%, ${theme.colors.primary[600]} 100%)`
+              style={{
+                background: `linear - gradient(135deg, ${theme.colors.primary[500]} 0 %, ${theme.colors.primary[600]} 100 %)`
               }}
             >
               Nova Venda
@@ -279,7 +278,7 @@ export const PDV: React.FC<PDVProps> = ({ onClose }) => {
         {/* Header */}
         <div className="bg-white p-4 shadow-sm flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div 
+            <div
               className="w-10 h-10 rounded-xl flex items-center justify-center"
               style={{ backgroundColor: theme.colors.primary[100] }}
             >
@@ -310,7 +309,7 @@ export const PDV: React.FC<PDVProps> = ({ onClose }) => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 rounded-xl border focus:outline-none focus:ring-2"
-                style={{ 
+                style={{
                   borderColor: theme.colors.primary[200],
                   color: theme.colors.neutral[800]
                 }}
@@ -353,7 +352,7 @@ export const PDV: React.FC<PDVProps> = ({ onClose }) => {
                 key={product.id}
                 onClick={() => addToCart(product)}
                 className="bg-white rounded-xl p-3 text-left transition-all hover:shadow-md"
-                style={{ border: `1px solid ${theme.colors.primary[100]}` }}
+                style={{ border: `1px solid ${theme.colors.primary[100]} ` }}
               >
                 <img
                   src={product.images[0]}
@@ -376,16 +375,16 @@ export const PDV: React.FC<PDVProps> = ({ onClose }) => {
       </div>
 
       {/* Right Panel - Cart */}
-      <div 
+      <div
         className="w-96 bg-white flex flex-col shadow-xl"
-        style={{ borderLeft: `1px solid ${theme.colors.primary[100]}` }}
+        style={{ borderLeft: `1px solid ${theme.colors.primary[100]} ` }}
       >
         {/* Cart Header */}
         <div className="p-4 border-b" style={{ borderColor: theme.colors.primary[100] }}>
           <div className="flex items-center gap-2 mb-4">
             <ShoppingCart className="w-5 h-5" style={{ color: theme.colors.primary[500] }} />
             <h2 className="font-bold" style={{ color: theme.colors.neutral[800] }}>Carrinho</h2>
-            <span 
+            <span
               className="ml-auto px-2 py-1 rounded-lg text-sm font-medium"
               style={{ backgroundColor: theme.colors.primary[100], color: theme.colors.primary[700] }}
             >
@@ -396,7 +395,7 @@ export const PDV: React.FC<PDVProps> = ({ onClose }) => {
           {/* Customer Info */}
           <div className="space-y-2">
             <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: theme.colors.neutral[400] }} />
+              <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: theme.colors.neutral[400] }} />
               <input
                 type="text"
                 placeholder="Nome do cliente (opcional)"
@@ -420,7 +419,7 @@ export const PDV: React.FC<PDVProps> = ({ onClose }) => {
           ) : (
             <div className="space-y-3">
               {cart.map(item => (
-                <div 
+                <div
                   key={item.productId}
                   className="flex items-center gap-3 p-3 rounded-lg"
                   style={{ backgroundColor: theme.colors.primary[50] }}
@@ -552,10 +551,10 @@ export const PDV: React.FC<PDVProps> = ({ onClose }) => {
             onClick={handleCompleteSale}
             disabled={cart.length === 0 || isProcessing}
             className="w-full py-4 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all"
-            style={{ 
-              background: cart.length === 0 
-                ? theme.colors.neutral[300] 
-                : `linear-gradient(135deg, ${theme.colors.primary[500]} 0%, ${theme.colors.primary[600]} 100%)`,
+            style={{
+              background: cart.length === 0
+                ? theme.colors.neutral[300]
+                : `linear - gradient(135deg, ${theme.colors.primary[500]} 0 %, ${theme.colors.primary[600]} 100 %)`,
               boxShadow: cart.length > 0 ? theme.shadows.pink : 'none'
             }}
           >

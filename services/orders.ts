@@ -2,7 +2,7 @@ import { OrderStatus, PaymentStatus } from '../types';
 import { db } from './database';
 import type { Order, CartItem, Address, ShippingMethod, PaymentMethod } from '../types';
 
-const generateId = () => Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+const generateId = () => crypto.randomUUID();
 
 // Gera número de pedido sequencial (#1, #2, #3...)
 const generateOrderNumber = async (): Promise<string> => {
@@ -63,9 +63,9 @@ class OrderService {
       }
 
       return { success: true, order };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Create order error:', error);
-      return { success: false, error: 'Erro ao criar pedido' };
+      return { success: false, error: error.message || 'Erro ao criar pedido' };
     }
   }
 
@@ -305,11 +305,11 @@ class OrderService {
   }> {
     const allOrders = await db.getAllOrders();
     const allProducts = await db.getAllProducts();
-    
+
     const productCostMap = new Map(allProducts.map(p => [p.id, p.costPrice || p.price * 0.5]));
 
     let filteredOrders = allOrders.filter(o => o.status !== OrderStatus.CANCELLED);
-    
+
     if (startDate) {
       filteredOrders = filteredOrders.filter(o => new Date(o.createdAt) >= startDate);
     }
@@ -324,7 +324,7 @@ class OrderService {
 
     for (const order of filteredOrders) {
       totalRevenue += order.total;
-      
+
       // Calculate cost
       let orderCost = 0;
       for (const item of order.items) {

@@ -197,12 +197,17 @@ export class DatabaseService {
   }
 
   async addOrder(order: Order): Promise<void> {
+    console.log('Database: Adding order:', order.id);
     const { error: orderError } = await supabase
       .from('orders')
       .insert(this.mapOrderToDb(order));
 
-    if (orderError) throw orderError;
+    if (orderError) {
+      console.error('Database: Error inserting order:', orderError);
+      throw orderError;
+    }
 
+    console.log('Database: Order inserted, adding items...');
     const items = order.items.map(item => ({
       order_id: order.id,
       product_id: item.productId,
@@ -210,14 +215,18 @@ export class DatabaseService {
       price: item.promotionalPrice || item.price,
       quantity: item.quantity,
       size: item.size,
-      color: item.color
+      color: item.color // Assuming JSONB column
     }));
 
     const { error: itemsError } = await supabase
       .from('order_items')
       .insert(items);
 
-    if (itemsError) throw itemsError;
+    if (itemsError) {
+      console.error('Database: Error inserting order items:', itemsError);
+      throw itemsError;
+    }
+    console.log('Database: Order and items added successfully');
   }
 
   async updateOrder(order: Order): Promise<void> {
@@ -391,9 +400,10 @@ export class DatabaseService {
   }
 
   private mapOrderToDb(o: Order) {
-    return {
+    const dbOrder: any = {
+      id: o.id,
       order_number: o.orderNumber,
-      user_id: o.userId,
+      user_id: o.userId || null, // Ensure empty string becomes null for UUID column
       user_name: o.userName,
       user_email: o.userEmail,
       user_phone: o.userPhone,
@@ -412,6 +422,13 @@ export class DatabaseService {
       tracking_code: o.trackingCode,
       notes: o.notes
     };
+
+    // Clean undefined fields
+    Object.keys(dbOrder).forEach(key => {
+      if (dbOrder[key] === undefined) delete dbOrder[key];
+    });
+
+    return dbOrder;
   }
 
   private mapCategory(c: any): Category {

@@ -12,6 +12,8 @@ interface LayoutProps {
   onLogout: () => void;
   onViewChange: (view: 'store' | 'admin' | 'profile' | 'cart' | 'checkout' | 'login' | 'register' | 'forgot-password' | 'pdv') => void;
   currentView: string;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
 }
 
 export const Layout: React.FC<LayoutProps> = ({
@@ -23,6 +25,8 @@ export const Layout: React.FC<LayoutProps> = ({
   onLogout,
   onViewChange,
   currentView,
+  searchQuery,
+  onSearchChange,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
@@ -34,8 +38,8 @@ export const Layout: React.FC<LayoutProps> = ({
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: theme.colors.primary[50] }}>
       {/* Header */}
-      <header className="sticky top-0 z-50" style={{ 
-        backgroundColor: 'rgba(253, 245, 245, 0.95)', 
+      <header className="sticky top-0 z-50" style={{
+        backgroundColor: 'rgba(253, 245, 245, 0.95)',
         backdropFilter: 'blur(20px)',
         borderBottom: `1px solid ${theme.colors.primary[200]}`
       }}>
@@ -46,7 +50,7 @@ export const Layout: React.FC<LayoutProps> = ({
               <button
                 onClick={() => onViewChange('store')}
                 className="text-3xl font-bold tracking-tight transition-all hover:scale-105"
-                style={{ 
+                style={{
                   background: `linear-gradient(135deg, ${theme.colors.primary[600]} 0%, ${theme.colors.primary[500]} 100%)`,
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent'
@@ -92,7 +96,7 @@ export const Layout: React.FC<LayoutProps> = ({
                       onMouseEnter={() => setShowCategories(true)}
                       onMouseLeave={() => setShowCategories(false)}
                       className="absolute top-full left-0 w-56 rounded-2xl shadow-xl py-2 z-50"
-                      style={{ 
+                      style={{
                         backgroundColor: 'white',
                         border: `1px solid ${theme.colors.primary[200]}`
                       }}
@@ -149,7 +153,7 @@ export const Layout: React.FC<LayoutProps> = ({
                   type="text"
                   placeholder="Buscar produtos..."
                   className="w-64 pl-11 pr-4 py-2.5 rounded-full text-sm transition-all focus:outline-none focus:ring-2"
-                  style={{ 
+                  style={{
                     backgroundColor: 'white',
                     border: `2px solid ${theme.colors.primary[200]}`,
                   }}
@@ -161,6 +165,8 @@ export const Layout: React.FC<LayoutProps> = ({
                     e.currentTarget.style.borderColor = theme.colors.primary[200];
                     e.currentTarget.style.boxShadow = 'none';
                   }}
+                  value={searchQuery || ''}
+                  onChange={(e) => onSearchChange?.(e.target.value)}
                 />
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: theme.colors.primary[400] }} />
               </div>
@@ -209,7 +215,7 @@ export const Layout: React.FC<LayoutProps> = ({
                       <button
                         onClick={() => onViewChange('pdv')}
                         className="flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all"
-                        style={{ 
+                        style={{
                           backgroundColor: isActiveView('pdv') ? theme.colors.primary[600] : theme.colors.primary[100],
                           color: isActiveView('pdv') ? 'white' : theme.colors.primary[700],
                         }}
@@ -233,7 +239,7 @@ export const Layout: React.FC<LayoutProps> = ({
                       <button
                         onClick={() => onViewChange('admin')}
                         className="p-2.5 rounded-full transition-all"
-                        style={{ 
+                        style={{
                           backgroundColor: isActiveView('admin') ? theme.colors.primary[200] : 'transparent',
                         }}
                         onMouseEnter={(e) => {
@@ -251,7 +257,7 @@ export const Layout: React.FC<LayoutProps> = ({
                   <button
                     onClick={() => onViewChange('profile')}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-full transition-all font-medium text-sm"
-                    style={{ 
+                    style={{
                       backgroundColor: isActiveView('profile') ? theme.colors.primary[600] : theme.colors.primary[100],
                       color: isActiveView('profile') ? 'white' : theme.colors.primary[700],
                     }}
@@ -293,7 +299,7 @@ export const Layout: React.FC<LayoutProps> = ({
                   <button
                     onClick={() => onViewChange('login')}
                     className="px-5 py-2.5 rounded-full text-sm font-medium transition-all"
-                    style={{ 
+                    style={{
                       color: theme.colors.primary[700],
                       backgroundColor: isActiveView('login') || isActiveView('register') ? theme.colors.primary[200] : 'transparent',
                     }}
@@ -311,7 +317,7 @@ export const Layout: React.FC<LayoutProps> = ({
                   <button
                     onClick={() => onViewChange('register')}
                     className="px-5 py-2.5 rounded-full text-sm font-medium text-white transition-all hover:scale-105 shadow-lg"
-                    style={{ 
+                    style={{
                       background: `linear-gradient(135deg, ${theme.colors.primary[500]} 0%, ${theme.colors.primary[600]} 100%)`,
                       boxShadow: theme.shadows.pink,
                     }}
@@ -365,7 +371,7 @@ export const Layout: React.FC<LayoutProps> = ({
                   type="text"
                   placeholder="Buscar produtos..."
                   className="w-full pl-11 pr-4 py-3 rounded-full text-sm"
-                  style={{ 
+                  style={{
                     backgroundColor: theme.colors.primary[50],
                     border: `2px solid ${theme.colors.primary[200]}`,
                   }}

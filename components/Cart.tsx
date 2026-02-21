@@ -368,7 +368,18 @@ export const Cart: React.FC<CartProps> = ({
                     onChange={() => setPaymentMethod('pix')}
                     className="w-4 h-4"
                   />
-                  <span>PIX</span>
+                  <span>PIX/Boleto</span>
+                </label>
+                <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50" style={{ borderColor: theme.colors.primary[200] }}>
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="debit"
+                    checked={paymentMethod === 'debit'}
+                    onChange={() => setPaymentMethod('debit')}
+                    className="w-4 h-4"
+                  />
+                  <span>Cartão de Débito</span>
                 </label>
                 <div>
                   <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 mb-2" style={{ borderColor: theme.colors.primary[200] }}>
@@ -393,17 +404,6 @@ export const Cart: React.FC<CartProps> = ({
                     </div>
                   )}
                 </div>
-                <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50" style={{ borderColor: theme.colors.primary[200] }}>
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="debit"
-                    checked={paymentMethod === 'debit'}
-                    onChange={() => setPaymentMethod('debit')}
-                    className="w-4 h-4"
-                  />
-                  <span>Cartão de Débito</span>
-                </label>
               </div>
             </div>
 

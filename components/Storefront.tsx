@@ -9,15 +9,22 @@ interface StorefrontProps {
   categories: Category[];
   onAddToCart: (item: Omit<import('../types').CartItem, 'quantity'> & { quantity?: number }) => void;
   onProductClick?: (product: Product) => void;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
 }
 
 export const Storefront: React.FC<StorefrontProps> = ({
   categories,
   onAddToCart,
   onProductClick,
+  searchQuery,
+  onSearchChange,
 }) => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [search, setSearch] = useState('');
+  const [internalSearch, setInternalSearch] = useState('');
+
+  const search = searchQuery !== undefined ? searchQuery : internalSearch;
+  const setSearch = onSearchChange || setInternalSearch;
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedProductDetails, setSelectedProductDetails] = useState<Product | null>(null);
@@ -39,9 +46,18 @@ export const Storefront: React.FC<StorefrontProps> = ({
   };
 
   const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.description.toLowerCase().includes(search.toLowerCase());
+    const searchLower = search.toLowerCase().trim();
+    if (!searchLower) {
+      const matchesCategory = !selectedCategory || p.categoryId === selectedCategory;
+      return matchesCategory;
+    }
+
+    const searchTerms = searchLower.split(/\s+/);
+    const productData = `${p.name} ${p.description} ${p.tags.join(' ')} ${p.category || ''}`.toLowerCase();
+
+    const matchesSearch = searchTerms.every(term => productData.includes(term));
     const matchesCategory = !selectedCategory || p.categoryId === selectedCategory;
+
     return matchesSearch && matchesCategory;
   });
 

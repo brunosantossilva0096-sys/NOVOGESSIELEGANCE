@@ -54,6 +54,7 @@ const App: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
   const [shippingCost, setShippingCost] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Initialize services
   useEffect(() => {
@@ -242,7 +243,7 @@ const App: React.FC = () => {
       case 'pdv':
         console.log('Rendering PDV view, user:', user?.role);
         return user?.role === 'admin' || user?.role === 'employee' ? (
-          <PDV onClose={() => setView('store')} />
+          <PDV onClose={() => setView('store')} currentUser={user} />
         ) : (
           <Storefront
             onAddToCart={addToCart}
@@ -297,6 +298,8 @@ const App: React.FC = () => {
           <Storefront
             categories={categories}
             onAddToCart={addToCart}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
           />
         );
     }
@@ -342,6 +345,11 @@ const App: React.FC = () => {
         onLogout={logout}
         onViewChange={setView}
         currentView={view}
+        searchQuery={searchQuery}
+        onSearchChange={(q) => {
+          setSearchQuery(q);
+          if (view !== 'store') setView('store');
+        }}
       >
         {renderContent()}
       </Layout>
