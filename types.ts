@@ -22,6 +22,7 @@ export interface Product {
 export interface ColorOption {
   name: string;
   hex: string;
+  stock?: number;
   images?: string[];
 }
 

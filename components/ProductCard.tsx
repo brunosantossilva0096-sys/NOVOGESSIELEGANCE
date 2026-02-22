@@ -24,6 +24,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
     };
 
     const handleAddToCart = () => {
+        if (selectedColor !== undefined && (selectedColor.stock || 0) === 0) {
+            return;
+        }
         onAddToCart({
             productId: product.id,
             name: product.name,
@@ -108,6 +111,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
                     <span className="text-[10px] font-bold uppercase tracking-tighter text-green-600">Disponível</span>
                 </div>
 
+                {/* Cores disponíveis no card principal (mini swatches) */}
+                {product.colors && product.colors.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1" aria-label="cores disponíveis">
+                        {product.colors.map((c, idx) => (
+                            <span
+                                key={idx}
+                                title={c.name}
+                                style={{ backgroundColor: c.hex }}
+                                className="inline-block w-4 h-4 rounded-full border border-gray-200"
+                            />
+                        ))}
+                    </div>
+                )}
+
                 {/* Expansion Area: Description revealed via grid-template-rows */}
                 <div className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-500 ease-out overflow-hidden">
                     <div className="min-h-0">
@@ -190,28 +207,41 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
                             {product.colors.length > 0 && (
                                 <div>
                                     <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-4">Cores</label>
-                                    <div className="flex gap-4">
-                                        {product.colors.map(c => (
-                                            <button
-                                                key={c.name}
-                                                onClick={() => setSelectedColor(c)}
-                                                className={`group p-1 rounded-full border-2 transition-all ${selectedColor?.name === c.name ? 'border-pink-400 scale-125' : 'border-transparent'}`}
-                                                title={c.name}
-                                            >
-                                                <div className="w-8 h-8 rounded-full shadow-inner border border-black/5" style={{ backgroundColor: c.hex }} />
-                                            </button>
-                                        ))}
+                                    <div className="flex gap-4 flex-wrap">
+                                        {product.colors.map(c => {
+                                            const hasStock = (c.stock || 0) > 0;
+                                            return (
+                                                <button
+                                                    key={c.name}
+                                                    onClick={() => hasStock && setSelectedColor(c)}
+                                                    disabled={!hasStock}
+                                                    className={`group p-1 rounded-full border-2 transition-all relative ${selectedColor?.name === c.name ? 'border-pink-400 scale-125' : 'border-transparent'} ${!hasStock ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                                                    title={c.name + (hasStock ? ` (${c.stock} un.)` : ' (Esgotado)')}
+                                                >
+                                                    <div className="w-8 h-8 rounded-full shadow-inner border border-black/5" style={{ backgroundColor: c.hex }} />
+                                                    {!hasStock && (
+                                                        <div className="absolute inset-0 flex items-center justify-center">
+                                                            <div className="w-full h-0.5 bg-red-500 rotate-45 absolute" />
+                                                        </div>
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
+                                    {selectedColor && (selectedColor.stock || 0) === 0 && (
+                                        <p className="text-xs text-red-500 mt-2 font-medium">Esta cor está esgotada. Escolha outra.</p>
+                                    )}
                                 </div>
                             )}
                         </div>
 
                         <button
                             onClick={handleAddToCart}
-                            className="w-full mt-10 py-5 rounded-2xl text-white font-bold text-lg shadow-pink transition-all hover:scale-[1.02] flex items-center justify-center gap-3 active:scale-95"
-                            style={{ background: theme.gradients.button }}
+                            disabled={selectedColor !== undefined && (selectedColor.stock || 0) === 0}
+                            className={`w-full mt-10 py-5 rounded-2xl text-white font-bold text-lg shadow-pink transition-all flex items-center justify-center gap-3 ${(selectedColor !== undefined && (selectedColor.stock || 0) === 0) ? 'bg-gray-400 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-95'}`}
+                            style={{ background: (selectedColor !== undefined && (selectedColor.stock || 0) === 0) ? '#9ca3af' : theme.gradients.button }}
                         >
-                            <ShoppingBag className="w-6 h-6" /> Adicionar ao Carrinho
+                            <ShoppingBag className="w-6 h-6" /> {(selectedColor !== undefined && (selectedColor.stock || 0) === 0) ? 'Esgotado' : 'Adicionar ao Carrinho'}
                         </button>
                     </div>
                 </div>

@@ -49,14 +49,26 @@ export const Layout: React.FC<LayoutProps> = ({
             <div className="flex items-center gap-8">
               <button
                 onClick={() => onViewChange('store')}
-                className="text-3xl font-bold tracking-tight transition-all hover:scale-105"
-                style={{
-                  background: `linear-gradient(135deg, ${theme.colors.primary[600]} 0%, ${theme.colors.primary[500]} 100%)`,
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent'
-                }}
+                className="transition-all hover:scale-105 flex items-center"
               >
-                {storeName}
+                {storeConfig?.logo || '/logo.png' ? (
+                  <img
+                    src={storeConfig?.logo || '/logo.png'}
+                    alt={storeName}
+                    className="h-14 w-auto object-contain"
+                  />
+                ) : (
+                  <span
+                    className="text-3xl font-bold tracking-tight"
+                    style={{
+                      background: `linear-gradient(135deg, ${theme.colors.primary[600]} 0%, ${theme.colors.primary[500]} 100%)`,
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent'
+                    }}
+                  >
+                    {storeName}
+                  </span>
+                )}
               </button>
 
               {/* Desktop Navigation */}

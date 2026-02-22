@@ -18,8 +18,42 @@ export default function PaymentForm() {
   };
 
   return (
-    <div style={{ maxWidth: '500px', margin: '50px auto' }}>
-      <h1>Pagamento</h1>
+    <div style={{ maxWidth: '500px', margin: '50px auto', position: 'relative' }}>
+      {/* Logo no canto superior esquerdo */}
+      <div style={{ 
+        position: 'absolute', 
+        top: '-40px', 
+        left: '0',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px'
+      }}>
+        <img 
+          src="/logo.png" 
+          alt="Gessi Elegance" 
+          style={{ 
+            height: '60px',
+            width: 'auto',
+            backgroundColor: '#8B4513',
+            padding: '5px',
+            borderRadius: '5px'
+          }}
+          onError={(e) => {
+            e.target.style.display = 'none';
+            e.target.nextSibling.style.display = 'block';
+          }}
+        />
+        <div style={{ 
+          display: 'none', 
+          fontSize: '18px', 
+          fontWeight: 'bold',
+          color: '#8B4513' 
+        }}>
+          GESSI ELEGANCE
+        </div>
+      </div>
+      
+      <h1 style={{ marginTop: '30px' }}>Pagamento</h1>
 
       
       <form onSubmit={handleSubmit}>

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { db, orderService, auth } from '../services';
-import type { Product, Order, Category, StoreConfig, User } from '../types';
+import type { Product, Order, Category, StoreConfig, User, ColorOption } from '../types';
 import { OrderStatus, PaymentStatus } from '../types';
-import { Plus, Trash2, Edit, Save, X, Package, ShoppingBag, TrendingUp, Users, DollarSign, AlertCircle, CheckCircle, Truck, Calculator, UserPlus, TrendingDown, Upload } from 'lucide-react';
+import { Plus, Trash2, Edit, Save, X, Package, ShoppingBag, TrendingUp, Users, DollarSign, AlertCircle, CheckCircle, Truck, Calculator, UserPlus, TrendingDown, Upload, Palette } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 
 interface AdminDashboardProps {
@@ -33,6 +33,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     ordersShipped: 0,
     lowStock: 0,
   });
+
+  // Memo: lista única de cores de todos os produtos
+  const allColors = React.useMemo(() => {
+    const map = new Map<string, ColorOption>();
+    products.forEach(p => {
+      (p.colors || []).forEach(c => {
+        const key = `${c.name}-${c.hex}`;
+        if (!map.has(key)) map.set(key, c);
+      });
+    });
+    return Array.from(map.values());
+  }, [products]);
 
   // Profit report state
   const [profitReport, setProfitReport] = useState<{
@@ -88,6 +100,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     isActive: true,
     order: 0,
   });
+
+  const [newColor, setNewColor] = useState({ name: '', hex: '#000000', stock: 0 });
+
+  const handleAddColor = () => {
+    if (!newColor.name.trim()) {
+      alert('Informe o nome da cor');
+      return;
+    }
+    setFormData(prev => ({
+      ...prev,
+      colors: [...(prev.colors || []), { name: newColor.name, hex: newColor.hex, stock: newColor.stock }]
+    }));
+    setNewColor({ name: '', hex: '#000000', stock: 0 });
+  };
+
+  const handleRemoveColor = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      colors: prev.colors?.filter((_, i) => i !== index) || []
+    }));
+  };
+
+  const handleUpdateColorStock = (index: number, stock: number) => {
+    setFormData(prev => ({
+      ...prev,
+      colors: prev.colors?.map((c, i) => i === index ? { ...c, stock } : c) || []
+    }));
+  };
+
+  const totalColorStock = formData.colors?.reduce((sum, c) => sum + (c.stock || 0), 0) || 0;
 
   useEffect(() => {
     refreshData();
@@ -169,7 +211,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       images: formData.images?.filter(Boolean) || ['https://via.placeholder.com/600'],
       category: categories.find(c => c.id === formData.categoryId)?.name || '',
       categoryId: formData.categoryId,
-      stock: formData.stock || 0,
+      stock: formData.colors && formData.colors.length > 0 
+        ? formData.colors.reduce((sum, c) => sum + (c.stock || 0), 0)
+        : (formData.stock || 0),
       minStock: formData.minStock || 5,
       sizes: formData.sizes || [],
       colors: formData.colors || [],
@@ -440,6 +484,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             />
           </div>
 
+          {/* Colors Overview */}
+          <div className="mt-6">
+            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Palette className="w-5 h-5 text-blue-600" />
+              Cores dos Produtos
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {allColors.map((c, i) => (
+                <div key={i} className="flex items-center bg-gray-100 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200">
+                  <div className="w-3.5 h-3.5 rounded-full mr-2 border border-gray-300" style={{ backgroundColor: c.hex }}></div>
+                  <span>{c.name}</span>
+                </div>
+              ))}
+              {allColors.length === 0 && <p className="text-gray-500 text-sm italic">Nenhuma cor cadastrada</p>}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
               <h3 className="font-bold text-gray-900 mb-6">Status dos Pedidos</h3>
@@ -660,6 +721,77 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <span className="text-sm">Produto ativo</span>
                     </label>
                   </div>
+
+                  <div className="col-span-2 border-t pt-4 mt-2">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Palette className="w-5 h-5 text-blue-600" />
+                      <h4 className="font-semibold text-gray-900">Cores e Estoque</h4>
+                    </div>
+                    
+                    <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                      <p className="text-sm text-blue-700 mb-3">
+                        Estoque Total: <span className="font-bold">{totalColorStock}</span> unidades
+                      </p>
+                      
+                      <div className="grid grid-cols-3 gap-2 mb-3">
+                        <input
+                          type="text"
+                          placeholder="Nome da cor"
+                          className="border border-blue-200 rounded-lg p-2 text-sm"
+                          value={newColor.name}
+                          onChange={e => setNewColor({ ...newColor, name: e.target.value })}
+                        />
+                        <input
+                          type="color"
+                          className="w-full h-10 rounded-lg cursor-pointer border border-blue-200"
+                          value={newColor.hex}
+                          onChange={e => setNewColor({ ...newColor, hex: e.target.value })}
+                        />
+                        <input
+                          type="number"
+                          placeholder="Qtd"
+                          className="border border-blue-200 rounded-lg p-2 text-sm"
+                          value={newColor.stock || ''}
+                          onChange={e => setNewColor({ ...newColor, stock: Number(e.target.value) })}
+                        />
+                      </div>
+                      <button
+                        onClick={handleAddColor}
+                        className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center justify-center gap-2"
+                      >
+                        <Plus className="w-4 h-4" /> Adicionar Cor
+                      </button>
+                    </div>
+
+                    {formData.colors && formData.colors.length > 0 && (
+                      <div className="space-y-2">
+                        {formData.colors.map((color, index) => (
+                          <div key={index} className="flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-200">
+                            <div
+                              className="w-8 h-8 rounded-full border border-gray-300 flex-shrink-0"
+                              style={{ backgroundColor: color.hex }}
+                            />
+                            <span className="font-medium text-gray-900 flex-1">{color.name}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-500">Qtd:</span>
+                              <input
+                                type="number"
+                                className="w-20 border border-gray-200 rounded-lg p-1.5 text-center text-sm"
+                                value={color.stock || 0}
+                                onChange={e => handleUpdateColorStock(index, Number(e.target.value))}
+                              />
+                            </div>
+                            <button
+                              onClick={() => handleRemoveColor(index)}
+                              className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="mt-6 flex justify-end gap-3">
@@ -689,7 +821,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <th className="px-6 py-4 font-semibold text-sm">Categoria</th>
                   <th className="px-6 py-4 font-semibold text-sm">Preço Venda</th>
                   <th className="px-6 py-4 font-semibold text-sm">Preço Custo</th>
-                  <th className="px-6 py-4 font-semibold text-sm">Estoque</th>
+                  <th className="px-6 py-4 font-semibold text-sm">Cores</th>
                   <th className="px-6 py-4 font-semibold text-sm text-right">Ações</th>
                 </tr>
               </thead>
@@ -720,10 +852,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       {p.costPrice ? formatCurrency(p.costPrice) : '-'}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${p.stock <= (p.minStock || 5) ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
-                        }`}>
-                        {p.stock} / {p.minStock || 5} min
-                      </span>
+                      <div className="flex flex-wrap gap-1">
+                        {p.colors && p.colors.length > 0 ? (
+                          p.colors.map((c, i) => (
+                            <div key={i} title={`${c.name}: ${c.stock || 0} un.`} className="flex items-center bg-gray-100 px-2 py-1 rounded text-xs border border-gray-200">
+                              <div className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: c.hex }} />
+                              <span>{c.stock || 0}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${p.stock <= (p.minStock || 5) ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+                            }`}>
+                            {p.stock} / {p.minStock || 5} min
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
