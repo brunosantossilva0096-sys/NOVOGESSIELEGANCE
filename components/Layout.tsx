@@ -15,6 +15,7 @@ interface LayoutProps {
   currentView: string;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
+  onSearchSubmit?: (query: string) => void;
   promotionalProductsCount?: number;
   promotionalCategoriesCount?: number;
   promotionalCategoryIds?: Set<string>;
@@ -34,6 +35,7 @@ export const Layout: React.FC<LayoutProps> = ({
   currentView,
   searchQuery,
   onSearchChange,
+  onSearchSubmit,
   promotionalProductsCount = 0,
   promotionalCategoriesCount = 0,
   promotionalCategoryIds = new Set(),
@@ -257,7 +259,7 @@ export const Layout: React.FC<LayoutProps> = ({
                 <input
                   type="text"
                   placeholder="Buscar produtos..."
-                  className="w-64 pl-11 pr-4 py-2.5 rounded-full text-sm transition-all focus:outline-none focus:ring-2"
+                  className="w-64 pl-11 pr-12 py-2.5 rounded-full text-sm transition-all focus:outline-none focus:ring-2"
                   style={{
                     backgroundColor: 'white',
                     border: `2px solid ${theme.colors.primary[200]}`,
@@ -272,8 +274,24 @@ export const Layout: React.FC<LayoutProps> = ({
                   }}
                   value={searchQuery || ''}
                   onChange={(e) => onSearchChange?.(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      onSearchSubmit?.(searchQuery || '');
+                    }
+                  }}
                 />
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: theme.colors.primary[400] }} />
+                {(searchQuery || '').length > 0 && (
+                  <button
+                    onClick={() => {
+                      onSearchChange?.('');
+                      onSearchSubmit?.('');
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-neutral-100 transition-colors"
+                  >
+                    <X className="w-4 h-4 text-neutral-400" />
+                  </button>
+                )}
               </div>
 
               {/* Cart */}
@@ -475,13 +493,32 @@ export const Layout: React.FC<LayoutProps> = ({
                 <input
                   type="text"
                   placeholder="Buscar produtos..."
-                  className="w-full pl-11 pr-4 py-3 rounded-full text-sm"
+                  className="w-full pl-11 pr-12 py-3 rounded-full text-sm"
                   style={{
                     backgroundColor: theme.colors.primary[50],
                     border: `2px solid ${theme.colors.primary[200]}`,
                   }}
+                  value={searchQuery || ''}
+                  onChange={(e) => onSearchChange?.(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      onSearchSubmit?.(searchQuery || '');
+                      setIsMenuOpen(false);
+                    }
+                  }}
                 />
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: theme.colors.primary[400] }} />
+                {(searchQuery || '').length > 0 && (
+                  <button
+                    onClick={() => {
+                      onSearchChange?.('');
+                      onSearchSubmit?.('');
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-neutral-100 transition-colors"
+                  >
+                    <X className="w-4 h-4 text-neutral-400" />
+                  </button>
+                )}
               </div>
 
               <button

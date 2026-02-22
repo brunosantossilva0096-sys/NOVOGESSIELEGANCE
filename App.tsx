@@ -414,6 +414,17 @@ const App: React.FC = () => {
           setSearchQuery(q);
           if (view !== 'store') setView('store');
         }}
+        onSearchSubmit={(q) => {
+          setSearchQuery(q);
+          if (view !== 'store') {
+            setView('store');
+            setTimeout(() => {
+              setScrollToSection('catalogo');
+            }, 150);
+          } else {
+            setScrollToSection('catalogo');
+          }
+        }}
         promotionalProductsCount={promotionalProductsCount}
         promotionalCategoriesCount={promotionalCategoriesCount}
         promotionalCategoryIds={promotionalCategoryIds}
