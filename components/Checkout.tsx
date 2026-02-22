@@ -4,8 +4,9 @@ import { PaymentMethod, PaymentStatus } from '../types';
 import { orderService, emailService, pdfService, whatsappService } from '../services';
 import { asaasService, cleanDocument } from '../services/asaas';
 import {
-  CreditCard, QrCode, ShieldCheck, CheckCircle2, ArrowLeft, Loader2, Copy, ExternalLink, Clock, Barcode
+  CreditCard, QrCode, ShieldCheck, CheckCircle2, ArrowLeft, Loader2, Copy, ExternalLink, Clock, Barcode, FileText
 } from 'lucide-react';
+import { StorePolicies } from './StorePolicies';
 
 interface CheckoutProps {
   user: User;
@@ -40,6 +41,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
   onBack,
 }) => {
   const [step, setStep] = useState<CheckoutStep>('payment');
+  const [showPolicies, setShowPolicies] = useState(false);
 
   React.useEffect(() => {
     window.scrollTo(0, 0);
@@ -546,6 +548,25 @@ export const Checkout: React.FC<CheckoutProps> = ({
           </div>
         </div>
 
+        {/* Políticas da Loja */}
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <FileText className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <h4 className="font-semibold text-amber-900 mb-2">Importante: Política de Trocas e Devoluções</h4>
+              <p className="text-sm text-amber-800 mb-3">
+                Nossa loja <strong>NÃO realiza trocas nem devoluções</strong> de produtos, exceto em caso de defeito de fabricação comprovado.
+              </p>
+              <button
+                onClick={() => setShowPolicies(true)}
+                className="text-sm font-medium text-amber-700 hover:text-amber-900 underline"
+              >
+                Leia a política completa →
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Método de pagamento */}
         <div>
           <h3 className="font-semibold text-gray-700 mb-4">Método de Pagamento</h3>
@@ -617,6 +638,9 @@ export const Checkout: React.FC<CheckoutProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Store Policies Modal */}
+      <StorePolicies isOpen={showPolicies} onClose={() => setShowPolicies(false)} />
     </div>
   );
 };

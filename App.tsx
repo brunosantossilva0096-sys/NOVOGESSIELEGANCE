@@ -9,6 +9,7 @@ import { ForgotPassword } from './components/ForgotPassword';
 import { UserProfile } from './components/UserProfile';
 import { Cart } from './components/Cart';
 import { PDV } from './components/PDV';
+import { Promotions } from './components/Promotions';
 import OrderTracking from './components/OrderTracking';
 import { db, auth, cartService, initializeServices } from './services';
 import type { CartItem, Product, User, Category, StoreConfig } from './types';
@@ -44,7 +45,7 @@ export const useApp = () => {
 };
 
 // View types
-type ViewType = 'store' | 'admin' | 'profile' | 'cart' | 'checkout' | 'login' | 'register' | 'forgot-password' | 'pdv' | 'order-tracking';
+type ViewType = 'store' | 'admin' | 'profile' | 'cart' | 'checkout' | 'login' | 'register' | 'forgot-password' | 'pdv' | 'order-tracking' | 'promotions';
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewType>('store');
@@ -163,6 +164,7 @@ const App: React.FC = () => {
   const goToRegister = () => setView('register');
   const goToForgotPassword = () => setView('forgot-password');
   const goToStore = () => setView('store');
+  const goToPromotions = () => setView('promotions');
   const goToCart = () => setView('cart');
   const goToCheckout = (shippingValue: number = 0) => {
     if (!user) {
@@ -209,6 +211,21 @@ const App: React.FC = () => {
         return (
           <ForgotPassword
             onNavigateToLogin={goToLogin}
+          />
+        );
+
+      case 'promotions':
+        return (
+          <Promotions
+            onProductSelect={(product) => {
+              // Navigate to store with product selected or add to cart
+              goToStore();
+            }}
+            onCategorySelect={(category) => {
+              // Navigate to store with category filtered
+              goToStore();
+            }}
+            onAddToCart={addToCart}
           />
         );
 

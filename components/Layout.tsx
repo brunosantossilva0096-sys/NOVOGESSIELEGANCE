@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ShoppingCart, User, Menu, X, LogOut, LayoutDashboard, Search, Heart, Store, Calculator } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, LogOut, LayoutDashboard, Search, Heart, Store, Calculator, FileText } from 'lucide-react';
 import type { User as UserType, Category, StoreConfig } from '../types';
 import { theme } from '../theme';
+import { StorePolicies } from './StorePolicies';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,7 +11,7 @@ interface LayoutProps {
   categories: Category[];
   storeConfig: StoreConfig | null;
   onLogout: () => void;
-  onViewChange: (view: 'store' | 'admin' | 'profile' | 'cart' | 'checkout' | 'login' | 'register' | 'forgot-password' | 'pdv') => void;
+  onViewChange: (view: 'store' | 'admin' | 'profile' | 'cart' | 'checkout' | 'login' | 'register' | 'forgot-password' | 'pdv' | 'promotions') => void;
   currentView: string;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
@@ -30,6 +31,7 @@ export const Layout: React.FC<LayoutProps> = ({
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
+  const [showPolicies, setShowPolicies] = useState(false);
 
   const storeName = storeConfig?.name || 'Gessi Elegance';
 
@@ -82,6 +84,20 @@ export const Layout: React.FC<LayoutProps> = ({
                 >
                   Início
                   {isActiveView('store') && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full" style={{ background: theme.colors.primary[500] }} />
+                  )}
+                </button>
+
+                {/* Promotions */}
+                <button
+                  onClick={() => onViewChange('promotions')}
+                  className="text-sm font-medium transition-colors relative py-5"
+                  style={{ color: isActiveView('promotions') ? theme.colors.primary[600] : theme.colors.neutral[600] }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.primary[600]}
+                  onMouseLeave={(e) => !isActiveView('promotions') && (e.currentTarget.style.color = theme.colors.neutral[600])}
+                >
+                  Promoções
+                  {isActiveView('promotions') && (
                     <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full" style={{ background: theme.colors.primary[500] }} />
                   )}
                 </button>
@@ -145,15 +161,6 @@ export const Layout: React.FC<LayoutProps> = ({
                   Novidades
                 </button>
 
-                <button
-                  onClick={() => onViewChange('store')}
-                  className="text-sm font-medium transition-colors py-5"
-                  style={{ color: theme.colors.neutral[600] }}
-                  onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.primary[600]}
-                  onMouseLeave={(e) => e.currentTarget.style.color = theme.colors.neutral[600]}
-                >
-                  Promoções
-                </button>
               </nav>
             </div>
 
@@ -531,9 +538,33 @@ export const Layout: React.FC<LayoutProps> = ({
             <div>
               <h4 className="text-white font-semibold mb-6 uppercase text-sm tracking-wider">Legal</h4>
               <ul className="space-y-3">
-                <li><span className="text-sm transition-colors hover:text-white cursor-pointer" style={{ color: theme.colors.neutral[400] }}>Termos de Uso</span></li>
-                <li><span className="text-sm transition-colors hover:text-white cursor-pointer" style={{ color: theme.colors.neutral[400] }}>Política de Privacidade</span></li>
-                <li><span className="text-sm transition-colors hover:text-white cursor-pointer" style={{ color: theme.colors.neutral[400] }}>Trocas e Devoluções</span></li>
+                <li>
+                  <button
+                    onClick={() => setShowPolicies(true)}
+                    className="text-sm transition-colors hover:text-white"
+                    style={{ color: theme.colors.neutral[400] }}
+                  >
+                    Termos de Uso
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => setShowPolicies(true)}
+                    className="text-sm transition-colors hover:text-white"
+                    style={{ color: theme.colors.neutral[400] }}
+                  >
+                    Política de Privacidade
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => setShowPolicies(true)}
+                    className="text-sm transition-colors hover:text-white"
+                    style={{ color: theme.colors.neutral[400] }}
+                  >
+                    Trocas e Devoluções
+                  </button>
+                </li>
               </ul>
             </div>
           </div>
@@ -545,6 +576,9 @@ export const Layout: React.FC<LayoutProps> = ({
           </div>
         </div>
       </footer>
+
+      {/* Store Policies Modal */}
+      <StorePolicies isOpen={showPolicies} onClose={() => setShowPolicies(false)} />
     </div>
   );
 };

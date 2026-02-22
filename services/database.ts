@@ -1,6 +1,33 @@
 import { supabase } from './supabase';
 import type { Product, User, Order, Category, ShippingMethod, StoreConfig } from '../types';
 
+export interface StorePolicy {
+  id: string;
+  policyType: string;
+  title: string;
+  content: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Promotion {
+  id: string;
+  name: string;
+  description?: string;
+  discountType: 'percentage' | 'fixed_amount';
+  discountValue: number;
+  minOrderValue?: number;
+  maxDiscountAmount?: number;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  usageLimit?: number;
+  usageCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export class DatabaseService {
   async init(): Promise<void> {
     // Supabase doesn't need client-side initialization after setup
@@ -332,6 +359,211 @@ export class DatabaseService {
       paymentConfig: data.payment_config,
       melhorEnvioConfig: data.melhor_envio_config,
     };
+  }
+
+  // Store Policies
+  async getPolicies(): Promise<StorePolicy[]> {
+    const { data, error } = await supabase
+      .from('store_policies')
+      .select('*')
+      .eq('is_active', true)
+      .order('policy_type');
+
+    if (error) {
+      console.error('Error fetching policies:', error);
+      return [];
+    }
+
+    return data?.map(policy => ({
+      id: policy.id,
+      policyType: policy.policy_type,
+      title: policy.title,
+      content: policy.content,
+      isActive: policy.is_active,
+      createdAt: policy.created_at,
+      updatedAt: policy.updated_at,
+    })) || [];
+  }
+
+  async getPolicyByType(policyType: string): Promise<StorePolicy | undefined> {
+    const { data, error } = await supabase
+      .from('store_policies')
+      .select('*')
+      .eq('policy_type', policyType)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching policy:', error);
+      return undefined;
+    }
+
+    if (!data) {
+      return undefined;
+    }
+
+    return {
+      id: data.id,
+      policyType: data.policy_type,
+      title: data.title,
+      content: data.content,
+      isActive: data.is_active,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    };
+  }
+
+  // Promotions
+  async getActivePromotions(): Promise<Promotion[]> {
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from('promotions')
+      .select('*')
+      .eq('is_active', true)
+      .lte('start_date', now)
+      .gte('end_date', now)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching active promotions:', error);
+      return [];
+    }
+
+    return data?.map(promo => ({
+      id: promo.id,
+      name: promo.name,
+      description: promo.description,
+      discountType: promo.discount_type,
+      discountValue: Number(promo.discount_value),
+      minOrderValue: promo.min_order_value ? Number(promo.min_order_value) : undefined,
+      maxDiscountAmount: promo.max_discount_amount ? Number(promo.max_discount_amount) : undefined,
+      startDate: promo.start_date,
+      endDate: promo.end_date,
+      isActive: promo.is_active,
+      usageLimit: promo.usage_limit,
+      usageCount: promo.usage_count,
+      createdAt: promo.created_at,
+      updatedAt: promo.updated_at,
+    })) || [];
+  }
+
+  async getPromotionProducts(promotionId: string): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('promotion_products')
+      .select('product_id')
+      .eq('promotion_id', promotionId);
+
+    if (error) {
+      console.error('Error fetching promotion products:', error);
+      return [];
+    }
+
+    return data?.map(item => item.product_id) || [];
+  }
+
+  async getPromotionCategories(promotionId: string): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('promotion_categories')
+      .select('category_id')
+      .eq('promotion_id', promotionId);
+
+    if (error) {
+      console.error('Error fetching promotion categories:', error);
+      return [];
+    }
+
+    return data?.map(item => item.category_id) || [];
+  }
+
+  async getPromotionalProducts(): Promise<Product[]> {
+    // Get products that have promotional price set and is lower than regular price
+    const { data: products, error: productsError } = await supabase
+      .from('products')
+      .select('*')
+      .not('promotional_price', 'is', null)
+      .lt('promotional_price', 'price')
+      .eq('is_active', true);
+
+    if (productsError) {
+      console.error('Error fetching promotional products:', productsError);
+      return [];
+    }
+
+    return products?.map(product => this.mapProduct(product)) || [];
+  }
+
+  async getPromotionalCategories(): Promise<Category[]> {
+    // Get categories that contain products with promotional prices
+    const { data: categories, error: categoriesError } = await supabase
+      .from('categories')
+      .select(`
+        *,
+        products!inner (
+          id,
+          promotional_price,
+          price,
+          is_active
+        )
+      `)
+      .eq('products.is_active', true)
+      .not('products.promotional_price', 'is', null)
+      .lt('products.promotional_price', 'products.price')
+      .eq('is_active', true);
+
+    if (categoriesError) {
+      console.error('Error fetching promotional categories:', categoriesError);
+      return [];
+    }
+
+    return categories?.map(category => this.mapCategory(category)) || [];
+  }
+
+  async addProductToPromotion(promotionId: string, productId: string): Promise<void> {
+    const { error } = await supabase
+      .from('promotion_products')
+      .insert({ promotion_id: promotionId, product_id: productId });
+
+    if (error) {
+      console.error('Error adding product to promotion:', error);
+      throw error;
+    }
+  }
+
+  async addCategoryToPromotion(promotionId: string, categoryId: string): Promise<void> {
+    const { error } = await supabase
+      .from('promotion_categories')
+      .insert({ promotion_id: promotionId, category_id: categoryId });
+
+    if (error) {
+      console.error('Error adding category to promotion:', error);
+      throw error;
+    }
+  }
+
+  async removeProductFromPromotion(promotionId: string, productId: string): Promise<void> {
+    const { error } = await supabase
+      .from('promotion_products')
+      .delete()
+      .eq('promotion_id', promotionId)
+      .eq('product_id', productId);
+
+    if (error) {
+      console.error('Error removing product from promotion:', error);
+      throw error;
+    }
+  }
+
+  async removeCategoryFromPromotion(promotionId: string, categoryId: string): Promise<void> {
+    const { error } = await supabase
+      .from('promotion_categories')
+      .delete()
+      .eq('promotion_id', promotionId)
+      .eq('category_id', categoryId);
+
+    if (error) {
+      console.error('Error removing category from promotion:', error);
+      throw error;
+    }
   }
 
   // Mapping Helpers

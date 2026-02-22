@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db, orderService, auth } from '../services';
 import type { Product, Order, Category, StoreConfig, User, ColorOption } from '../types';
 import { OrderStatus, PaymentStatus } from '../types';
-import { Plus, Trash2, Edit, Save, X, Package, ShoppingBag, TrendingUp, Users, DollarSign, AlertCircle, CheckCircle, Truck, Calculator, UserPlus, TrendingDown, Upload, Palette } from 'lucide-react';
+import { Plus, Trash2, Edit, Save, X, Package, ShoppingBag, TrendingUp, Users, DollarSign, AlertCircle, CheckCircle, Truck, Calculator, UserPlus, TrendingDown, Upload, Palette, Tag } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 
 interface AdminDashboardProps {
@@ -251,6 +251,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       refreshData();
     } catch (error) {
       console.error('Error deleting product:', error);
+    }
+  };
+
+  const handleTogglePromotion = async (product: Product) => {
+    const newPromotionalPrice = product.promotionalPrice 
+      ? null // Remove promoção
+      : Math.round(product.price * 0.7); // Aplica 30% de desconto
+
+    try {
+      const updatedProduct = {
+        ...product,
+        promotionalPrice: newPromotionalPrice
+      };
+      await db.updateProduct(updatedProduct);
+      refreshData();
+    } catch (error) {
+      console.error('Error updating promotion:', error);
+      alert('Erro ao atualizar promoção');
     }
   };
 
@@ -820,6 +838,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <th className="px-6 py-4 font-semibold text-sm">Produto</th>
                   <th className="px-6 py-4 font-semibold text-sm">Categoria</th>
                   <th className="px-6 py-4 font-semibold text-sm">Preço Venda</th>
+                  <th className="px-6 py-4 font-semibold text-sm">Preço Promoção</th>
                   <th className="px-6 py-4 font-semibold text-sm">Preço Custo</th>
                   <th className="px-6 py-4 font-semibold text-sm">Cores</th>
                   <th className="px-6 py-4 font-semibold text-sm text-right">Ações</th>
@@ -873,12 +892,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <button
                           onClick={() => { setIsEditing(p.id); setFormData(p); }}
                           className="p-2 text-gray-400 hover:text-blue-600"
+                          title="Editar Produto"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={() => handleTogglePromotion(p)}
+                          className="p-2 text-gray-400 hover:text-green-600"
+                          title={p.promotionalPrice ? "Remover Promoção" : "Colocar em Promoção"}
+                        >
+                          <Tag className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => handleDeleteProduct(p.id)}
                           className="p-2 text-gray-400 hover:text-red-600"
+                          title="Excluir Produto"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

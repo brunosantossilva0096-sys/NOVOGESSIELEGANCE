@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { db, orderService, auth, pdfService } from '../services';
-import type { Product, CartItem, Order, User } from '../types';
+import { db, orderService, auth, pdfService, getStoreConfig } from '../services';
+import type { Product, CartItem, Order, User, StoreConfig } from '../types';
 import { OrderStatus, PaymentStatus, PaymentMethod } from '../types';
 import {
   ShoppingCart, Plus, Minus, Trash2, Calculator, Banknote,
@@ -29,9 +29,12 @@ export const PDV: React.FC<PDVProps> = ({ onClose, currentUser }) => {
   const [categories, setCategories] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
 
   useEffect(() => {
     loadProducts();
+    // Load store config
+    getStoreConfig().then(setStoreConfig);
   }, []);
 
   const loadProducts = async () => {
@@ -196,9 +199,9 @@ export const PDV: React.FC<PDVProps> = ({ onClose, currentUser }) => {
     if (lastOrder) {
       pdfService.openReceipt({
         order: lastOrder,
-        storeName: 'Novage Gessi Elegance',
-        storePhone: '(98) 98538-1823',
-        storeEmail: 'gessianebelo1234@gmail.com'
+        storeName: storeConfig?.name || 'Novage Gessi Elegance',
+        storePhone: storeConfig?.contactPhone || '(98) 98538-1823',
+        storeEmail: storeConfig?.contactEmail || 'gessianebelo1234@gmail.com'
       });
     }
   };
