@@ -722,8 +722,20 @@ export const Layout: React.FC<LayoutProps> = ({
           </div>
 
           <div className="mt-12 pt-8 text-center" style={{ borderTop: `1px solid ${theme.colors.neutral[800]}` }}>
-            <p className="text-sm" style={{ color: theme.colors.neutral[500] }}>
+            <p className="text-sm mb-2" style={{ color: theme.colors.neutral[500] }}>
               © {new Date().getFullYear()} {storeName}. Todos os direitos reservados.
+            </p>
+            <p className="text-sm" style={{ color: theme.colors.neutral[400] }}>
+              Desenvolvido por{' '}
+              <a 
+                href="https://wa.me/55898970019366" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="font-medium hover:underline"
+                style={{ color: theme.colors.primary[400] }}
+              >
+                Bruno Santos
+              </a>
             </p>
           </div>
         </div>
