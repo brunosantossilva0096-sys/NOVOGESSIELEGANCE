@@ -305,15 +305,33 @@ export class DatabaseService {
 
   // Store Config
   async getStoreConfig(): Promise<StoreConfig | undefined> {
-    // We assume there's only one config record in public config
-    // (This would ideally be in a public table or fetched via function)
     const { data, error } = await supabase
-      .from('categories') // Placeholder as we didn't create a config table yet
+      .from('store_config')
       .select('*')
       .limit(1)
       .maybeSingle();
 
-    return undefined; // TODO: Implement store_config table if needed
+    if (error) {
+      console.error('Error fetching store config:', error);
+      return undefined;
+    }
+
+    if (!data) {
+      return undefined;
+    }
+
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      logo: data.logo,
+      contactEmail: data.contact_email,
+      contactPhone: data.contact_phone,
+      address: data.address,
+      socialLinks: data.social_links,
+      paymentConfig: data.payment_config,
+      melhorEnvioConfig: data.melhor_envio_config,
+    };
   }
 
   // Mapping Helpers

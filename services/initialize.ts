@@ -3,6 +3,7 @@ import { auth } from './auth';
 import { cartService } from './cart';
 import { emailService } from './email';
 import { melhorEnvio } from './melhorEnvio';
+import { supabase } from './supabase';
 import type { StoreConfig } from '../types';
 
 // Token Asaas de produção — também pode ser configurado via VITE_ASAAS_TOKEN
@@ -14,14 +15,14 @@ const defaultStoreConfig: StoreConfig = {
   id: 'default',
   name: 'GessiElegance Moda',
   description: 'Moda elegante e sofisticada para todas as ocasiões',
-  contactEmail: 'contato@gessielegance.com.br',
-  contactPhone: '(11) 99999-9999',
+  contactEmail: 'gessianebelo1234@gmail.com',
+  contactPhone: '(98) 98538-1823',
   paymentConfig: {
     pixEnabled: true,
     creditCardEnabled: true,
     debitCardEnabled: true,
-    boletoEnabled: false,
-    maxInstallments: 6,
+    boletoEnabled: true,
+    maxInstallments: 3,
     minInstallmentValue: 50,
   },
   melhorEnvioConfig: {
@@ -80,8 +81,30 @@ export async function getStoreConfig(): Promise<StoreConfig> {
 export async function updateStoreConfig(config: Partial<StoreConfig>): Promise<void> {
   const current = await getStoreConfig();
   const updated = { ...current, ...config, updatedAt: new Date().toISOString() };
-  // Skip DB save for now to fix lint, as the table doesn't exist yet
-  console.log('Store config update requested:', updated);
+  
+  // Save to database
+  const { error } = await supabase
+    .from('store_config')
+    .upsert({
+      id: current.id === 'default' ? undefined : current.id,
+      name: updated.name,
+      description: updated.description,
+      logo: updated.logo,
+      contact_email: updated.contactEmail,
+      contact_phone: updated.contactPhone,
+      address: updated.address,
+      social_links: updated.socialLinks,
+      payment_config: updated.paymentConfig,
+      melhor_envio_config: updated.melhorEnvioConfig,
+      updated_at: updated.updatedAt,
+    });
+
+  if (error) {
+    console.error('Error updating store config:', error);
+    throw error;
+  }
+
+  console.log('Store config updated successfully:', updated);
 
   // Update email service if store info changed
   if (config.name || config.contactEmail) {

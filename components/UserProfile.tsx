@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Package, MapPin, CreditCard, LogOut, Plus, Trash2, Star, ChevronRight, Loader2 } from 'lucide-react';
-import { auth, db, orderService } from '../services';
-import type { User as UserType, Order, Address } from '../types';
+import { auth, db, orderService, getStoreConfig } from '../services';
+import type { User as UserType, Order, Address, StoreConfig } from '../types';
 import { pdfService } from '../services/pdf';
 
 interface UserProfileProps {
@@ -18,9 +18,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   onNavigateToStore,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('orders');
+  const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    // Load store config
+    getStoreConfig().then(setStoreConfig);
   }, []);
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -225,8 +228,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                           <button
                             onClick={() => pdfService.openReceipt({
                               order,
-                              storeName: 'GessiElegance Moda',
-                              storeEmail: 'contato@gessielegance.com.br',
+                              storeName: storeConfig?.name || 'GessiElegance Moda',
+                              storeEmail: storeConfig?.contactEmail || 'contato@gessielegance.com.br',
                             })}
                             className="text-blue-600 hover:underline text-sm"
                           >

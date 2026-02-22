@@ -8,5 +8,5 @@ export { melhorEnvio } from './melhorEnvio';
 export { pdfService } from './pdf';
 export { emailService } from './email';
 export { whatsappService } from './whatsapp';
-export { initializeServices } from './initialize';
+export { initializeServices, getStoreConfig, updateStoreConfig } from './initialize';
 export { supabase } from './supabase';
