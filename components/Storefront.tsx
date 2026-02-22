@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../services';
 import { ProductCard } from './ProductCard';
-import { Search, ArrowRight, ShoppingBag, Sparkles, Truck, Shield, Clock, X } from 'lucide-react';
+import { Search, ArrowRight, ShoppingBag, Sparkles, Truck, Shield, Clock, X, Percent } from 'lucide-react';
 import type { Product, Category } from '../types';
 import { theme } from '../theme';
 
@@ -11,6 +11,9 @@ interface StorefrontProps {
   onProductClick?: (product: Product) => void;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
+  scrollToSection?: string | null;
+  onScrollComplete?: () => void;
+  selectedCategoryId?: string | null;
 }
 
 export const Storefront: React.FC<StorefrontProps> = ({
@@ -19,8 +22,12 @@ export const Storefront: React.FC<StorefrontProps> = ({
   onProductClick,
   searchQuery,
   onSearchChange,
+  scrollToSection,
+  onScrollComplete,
+  selectedCategoryId,
 }) => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [promotionalProducts, setPromotionalProducts] = useState<Product[]>([]);
   const [internalSearch, setInternalSearch] = useState('');
 
   const search = searchQuery !== undefined ? searchQuery : internalSearch;
@@ -33,11 +40,33 @@ export const Storefront: React.FC<StorefrontProps> = ({
     loadProducts();
   }, []);
 
+  // Sync selectedCategory with prop from navbar
+  useEffect(() => {
+    setSelectedCategory(selectedCategoryId || null);
+  }, [selectedCategoryId]);
+
+  // Handle scroll to section from navbar
+  useEffect(() => {
+    if (scrollToSection) {
+      setTimeout(() => {
+        const element = document.getElementById(scrollToSection);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          onScrollComplete?.();
+        }
+      }, 100);
+    }
+  }, [scrollToSection, onScrollComplete]);
+
   const loadProducts = async () => {
     setIsLoading(true);
     try {
       const prods = await db.getActiveProducts();
       setProducts(prods);
+      
+      // Load promotional products
+      const promos = await db.getPromotionalProducts();
+      setPromotionalProducts(promos);
     } catch (error) {
       console.error('Error loading products:', error);
     } finally {
@@ -66,7 +95,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
   return (
     <div className="animate-in fade-in duration-500" style={{ backgroundColor: theme.colors.primary[50] }}>
       {/* Hero Section - Design Elegante Rosa */}
-      <section className="relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${theme.colors.primary[300]} 0%, ${theme.colors.primary[400]} 50%, ${theme.colors.primary[500]} 100%)` }}>
+      <section id="inicio" className="relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${theme.colors.primary[300]} 0%, ${theme.colors.primary[400]} 50%, ${theme.colors.primary[500]} 100%)` }}>
         <div className="absolute inset-0">
           <div className="absolute inset-0" style={{ background: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.08\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
           <img
@@ -137,7 +166,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
       </section>
 
       {/* Benefits */}
-      <section style={{ backgroundColor: 'white', borderBottom: `1px solid ${theme.colors.primary[200]}` }}>
+      <section id="beneficios" style={{ backgroundColor: 'white', borderBottom: `1px solid ${theme.colors.primary[200]}` }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="flex items-center gap-4">
@@ -178,7 +207,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
 
       {/* Featured Products */}
       {featuredProducts.length > 0 && (
-        <section className="py-16" style={{ backgroundColor: theme.colors.primary[50] }}>
+        <section id="destaques" className="py-16" style={{ backgroundColor: theme.colors.primary[50] }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl font-bold flex items-center gap-3" style={{ color: theme.colors.neutral[800] }}>
@@ -188,7 +217,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
               <button
                 className="text-sm font-medium flex items-center gap-1 transition-all hover:gap-2"
                 style={{ color: theme.colors.primary[600] }}
-                onClick={() => document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })}
               >
                 Ver todos <ArrowRight className="w-4 h-4" />
               </button>
@@ -207,8 +236,41 @@ export const Storefront: React.FC<StorefrontProps> = ({
         </section>
       )}
 
+      {/* Promotions Section */}
+      {promotionalProducts.length > 0 && (
+        <section id="promocoes" className="py-16" style={{ backgroundColor: '#fef2f2' }}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl font-bold flex items-center gap-3" style={{ color: theme.colors.neutral[800] }}>
+                <Percent className="w-6 h-6 text-red-500" />
+                Ofertas Especiais
+              </h2>
+              <button
+                className="text-sm font-medium flex items-center gap-1 transition-all hover:gap-2"
+                style={{ color: '#dc2626' }}
+                onClick={() => {
+                  // Navigate to promotions view
+                }}
+              >
+                Ver todas <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {promotionalProducts.slice(0, 4).map(product => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onAddToCart={onAddToCart}
+                  onClick={() => setSelectedProductDetails(product)}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Catalog */}
-      <section id="catalog" className="py-16" style={{ backgroundColor: 'white' }}>
+      <section id="catalogo" className="py-16" style={{ backgroundColor: 'white' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="text-center mb-12">

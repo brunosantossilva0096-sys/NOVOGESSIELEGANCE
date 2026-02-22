@@ -56,6 +56,11 @@ const App: React.FC = () => {
   const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
   const [shippingCost, setShippingCost] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [promotionalProductsCount, setPromotionalProductsCount] = useState(0);
+  const [promotionalCategoriesCount, setPromotionalCategoriesCount] = useState(0);
+  const [promotionalCategoryIds, setPromotionalCategoryIds] = useState<Set<string>>(new Set());
+  const [scrollToSection, setScrollToSection] = useState<string | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
   // Initialize services
   useEffect(() => {
@@ -82,6 +87,15 @@ const App: React.FC = () => {
         // Load store config
         const config = await db.getStoreConfig();
         setStoreConfig(config);
+
+        // Load promotional products and categories count
+        const [promoProducts, promoCategories] = await Promise.all([
+          db.getPromotionalProducts(),
+          db.getPromotionalCategories()
+        ]);
+        setPromotionalProductsCount(promoProducts.length);
+        setPromotionalCategoriesCount(promoCategories.length);
+        setPromotionalCategoryIds(new Set(promoCategories.map(c => c.id)));
 
       } catch (error) {
         console.error('Initialization error:', error);
@@ -166,6 +180,20 @@ const App: React.FC = () => {
   const goToStore = () => setView('store');
   const goToPromotions = () => setView('promotions');
   const goToCart = () => setView('cart');
+  
+  // Navigate to category - scrolls to catalog and filters products
+  const goToCategory = (categoryId: string | null) => {
+    setSelectedCategoryId(categoryId);
+    if (view !== 'store') {
+      setView('store');
+      setTimeout(() => {
+        setScrollToSection('catalogo');
+      }, 150);
+    } else {
+      setScrollToSection('catalogo');
+    }
+  };
+  
   const goToCheckout = (shippingValue: number = 0) => {
     if (!user) {
       setView('login');
@@ -253,7 +281,13 @@ const App: React.FC = () => {
           />
         ) : (
           <Storefront
+            categories={categories}
             onAddToCart={addToCart}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            scrollToSection={scrollToSection}
+            onScrollComplete={() => setScrollToSection(null)}
+            selectedCategoryId={selectedCategoryId}
           />
         );
 
@@ -263,7 +297,13 @@ const App: React.FC = () => {
           <PDV onClose={() => setView('store')} currentUser={user} />
         ) : (
           <Storefront
+            categories={categories}
             onAddToCart={addToCart}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            scrollToSection={scrollToSection}
+            onScrollComplete={() => setScrollToSection(null)}
+            selectedCategoryId={selectedCategoryId}
           />
         );
 
@@ -321,6 +361,9 @@ const App: React.FC = () => {
             onAddToCart={addToCart}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
+            scrollToSection={scrollToSection}
+            onScrollComplete={() => setScrollToSection(null)}
+            selectedCategoryId={selectedCategoryId}
           />
         );
     }
@@ -371,6 +414,10 @@ const App: React.FC = () => {
           setSearchQuery(q);
           if (view !== 'store') setView('store');
         }}
+        promotionalProductsCount={promotionalProductsCount}
+        promotionalCategoriesCount={promotionalCategoriesCount}
+        promotionalCategoryIds={promotionalCategoryIds}
+        onCategoryClick={goToCategory}
       >
         {renderContent()}
       </Layout>

@@ -190,7 +190,7 @@ export const Promotions: React.FC<PromotionsProps> = ({ onProductSelect, onCateg
                     {/* Promo Badge */}
                     <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1">
                       <Percent className="w-3 h-3" />
-                      Oferta
+                      Promoção
                     </div>
                   </div>
 

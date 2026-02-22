@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingCart, User, Menu, X, LogOut, LayoutDashboard, Search, Heart, Store, Calculator, FileText } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, LogOut, LayoutDashboard, Search, Heart, Store, Calculator, FileText, Percent, Tag } from 'lucide-react';
 import type { User as UserType, Category, StoreConfig } from '../types';
 import { theme } from '../theme';
 import { StorePolicies } from './StorePolicies';
@@ -15,6 +15,12 @@ interface LayoutProps {
   currentView: string;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
+  promotionalProductsCount?: number;
+  promotionalCategoriesCount?: number;
+  promotionalCategoryIds?: Set<string>;
+  scrollToSection?: string | null;
+  onScrollToSection?: (section: string) => void;
+  onCategoryClick?: (categoryId: string | null) => void;
 }
 
 export const Layout: React.FC<LayoutProps> = ({
@@ -28,6 +34,12 @@ export const Layout: React.FC<LayoutProps> = ({
   currentView,
   searchQuery,
   onSearchChange,
+  promotionalProductsCount = 0,
+  promotionalCategoriesCount = 0,
+  promotionalCategoryIds = new Set(),
+  scrollToSection,
+  onScrollToSection,
+  onCategoryClick,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
@@ -36,6 +48,27 @@ export const Layout: React.FC<LayoutProps> = ({
   const storeName = storeConfig?.name || 'Gessi Elegance';
 
   const isActiveView = (view: string) => currentView === view;
+
+  // Scroll to section function
+  const handleNavClick = (section: string) => {
+    if (currentView !== 'store') {
+      // First go to store view, then scroll
+      onViewChange('store');
+      // Delay scroll to allow view to render
+      setTimeout(() => {
+        const element = document.getElementById(section);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 150);
+    } else {
+      // Already on store, just scroll
+      const element = document.getElementById(section);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: theme.colors.primary[50] }}>
@@ -76,7 +109,7 @@ export const Layout: React.FC<LayoutProps> = ({
               {/* Desktop Navigation */}
               <nav className="hidden lg:flex items-center gap-8">
                 <button
-                  onClick={() => onViewChange('store')}
+                  onClick={() => handleNavClick('inicio')}
                   className="text-sm font-medium transition-colors relative py-5"
                   style={{ color: isActiveView('store') ? theme.colors.primary[600] : theme.colors.neutral[600] }}
                   onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.primary[600]}
@@ -90,13 +123,21 @@ export const Layout: React.FC<LayoutProps> = ({
 
                 {/* Promotions */}
                 <button
-                  onClick={() => onViewChange('promotions')}
-                  className="text-sm font-medium transition-colors relative py-5"
+                  onClick={() => handleNavClick('promocoes')}
+                  className="text-sm font-medium transition-colors relative py-5 flex items-center gap-1"
                   style={{ color: isActiveView('promotions') ? theme.colors.primary[600] : theme.colors.neutral[600] }}
                   onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.primary[600]}
                   onMouseLeave={(e) => !isActiveView('promotions') && (e.currentTarget.style.color = theme.colors.neutral[600])}
                 >
                   Promoções
+                  {promotionalProductsCount > 0 && (
+                    <span 
+                      className="ml-1 px-2 py-0.5 text-xs font-bold rounded-full text-white"
+                      style={{ background: `linear-gradient(135deg, #ef4444 0%, #dc2626 100%)` }}
+                    >
+                      {promotionalProductsCount}
+                    </span>
+                  )}
                   {isActiveView('promotions') && (
                     <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full" style={{ background: theme.colors.primary[500] }} />
                   )}
@@ -105,6 +146,7 @@ export const Layout: React.FC<LayoutProps> = ({
                 {/* Categories Dropdown */}
                 <div className="relative">
                   <button
+                    onClick={() => handleNavClick('catalogo')}
                     onMouseEnter={(e) => {
                       setShowCategories(true);
                       e.currentTarget.style.color = theme.colors.primary[600];
@@ -113,10 +155,18 @@ export const Layout: React.FC<LayoutProps> = ({
                       setShowCategories(false);
                       e.currentTarget.style.color = theme.colors.neutral[600];
                     }}
-                    className="text-sm font-medium transition-colors py-5"
+                    className="text-sm font-medium transition-colors py-5 flex items-center gap-1"
                     style={{ color: theme.colors.neutral[600] }}
                   >
                     Categorias
+                    {promotionalCategoriesCount > 0 && (
+                      <span 
+                        className="ml-1 px-2 py-0.5 text-xs font-bold rounded-full text-white"
+                        style={{ background: `linear-gradient(135deg, #f59e0b 0%, #d97706 100%)` }}
+                      >
+                        {promotionalCategoriesCount}
+                      </span>
+                    )}
                   </button>
 
                   {showCategories && categories.length > 0 && (
@@ -129,30 +179,66 @@ export const Layout: React.FC<LayoutProps> = ({
                         border: `1px solid ${theme.colors.primary[200]}`
                       }}
                     >
-                      {categories.map((cat) => (
-                        <button
-                          key={cat.id}
-                          onClick={() => { onViewChange('store'); setShowCategories(false); }}
-                          className="block w-full text-left px-4 py-3 text-sm transition-all hover:pl-6"
-                          style={{ color: theme.colors.neutral[700] }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = theme.colors.primary[50];
-                            e.currentTarget.style.color = theme.colors.primary[600];
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                            e.currentTarget.style.color = theme.colors.neutral[700];
-                          }}
-                        >
-                          {cat.name}
-                        </button>
-                      ))}
+                      {/* All Categories Option */}
+                      <button
+                        key="all"
+                        onClick={() => { 
+                          onCategoryClick?.(null);
+                          setShowCategories(false); 
+                        }}
+                        className="block w-full text-left px-4 py-3 text-sm font-medium transition-all hover:pl-6 flex items-center justify-between gap-2"
+                        style={{ color: theme.colors.primary[600] }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = theme.colors.primary[50];
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
+                      >
+                        <span>Todas as Categorias</span>
+                      </button>
+                      
+                      <div style={{ height: '1px', backgroundColor: theme.colors.primary[200], margin: '4px 0' }} />
+                      
+                      {categories.map((cat) => {
+                        const hasPromo = promotionalCategoryIds.has(cat.id);
+                        return (
+                          <button
+                            key={cat.id}
+                            onClick={() => { 
+                              onCategoryClick?.(cat.id);
+                              setShowCategories(false); 
+                            }}
+                            className="block w-full text-left px-4 py-3 text-sm transition-all hover:pl-6 flex items-center justify-between gap-2"
+                            style={{ color: theme.colors.neutral[700] }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = theme.colors.primary[50];
+                              e.currentTarget.style.color = theme.colors.primary[600];
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.color = theme.colors.neutral[700];
+                            }}
+                          >
+                            <span>{cat.name}</span>
+                            {hasPromo && (
+                              <span 
+                                className="px-2 py-0.5 text-[10px] font-bold rounded-full text-white flex items-center gap-1"
+                                style={{ background: `linear-gradient(135deg, #ef4444 0%, #dc2626 100%)` }}
+                              >
+                                <Tag className="w-3 h-3" />
+                                Oferta
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
 
                 <button
-                  onClick={() => onViewChange('store')}
+                  onClick={() => handleNavClick('destaques')}
                   className="text-sm font-medium transition-colors py-5"
                   style={{ color: theme.colors.neutral[600] }}
                   onMouseEnter={(e) => e.currentTarget.style.color = theme.colors.primary[600]}
@@ -399,7 +485,7 @@ export const Layout: React.FC<LayoutProps> = ({
               </div>
 
               <button
-                onClick={() => { onViewChange('store'); setIsMenuOpen(false); }}
+                onClick={() => { handleNavClick('inicio'); setIsMenuOpen(false); }}
                 className="flex items-center gap-3 w-full px-4 py-3 rounded-xl font-medium transition-all"
                 style={{ color: theme.colors.neutral[700] }}
               >
@@ -407,16 +493,45 @@ export const Layout: React.FC<LayoutProps> = ({
                 <span>Início</span>
               </button>
 
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => { onViewChange('store'); setIsMenuOpen(false); }}
-                  className="flex items-center gap-3 w-full px-4 py-3 rounded-xl transition-all pl-12"
-                  style={{ color: theme.colors.neutral[600] }}
-                >
-                  <span>{cat.name}</span>
-                </button>
-              ))}
+              <button
+                onClick={() => { handleNavClick('promocoes'); setIsMenuOpen(false); }}
+                className="flex items-center gap-3 w-full px-4 py-3 rounded-xl font-medium transition-all"
+                style={{ color: theme.colors.neutral[700] }}
+              >
+                <Percent className="w-5 h-5" style={{ color: '#ef4444' }} />
+                <span>Promoções</span>
+                {promotionalProductsCount > 0 && (
+                  <span 
+                    className="ml-auto px-2 py-0.5 text-xs font-bold rounded-full text-white"
+                    style={{ background: `linear-gradient(135deg, #ef4444 0%, #dc2626 100%)` }}
+                  >
+                    {promotionalProductsCount}
+                  </span>
+                )}
+              </button>
+
+              {categories.map((cat) => {
+                const hasPromo = promotionalCategoryIds.has(cat.id);
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => { onCategoryClick?.(cat.id); setIsMenuOpen(false); }}
+                    className="flex items-center gap-3 w-full px-4 py-3 rounded-xl transition-all pl-12 justify-between"
+                    style={{ color: theme.colors.neutral[600] }}
+                  >
+                    <span>{cat.name}</span>
+                    {hasPromo && (
+                      <span 
+                        className="px-2 py-0.5 text-[10px] font-bold rounded-full text-white flex items-center gap-1"
+                        style={{ background: `linear-gradient(135deg, #ef4444 0%, #dc2626 100%)` }}
+                      >
+                        <Tag className="w-3 h-3" />
+                        Oferta
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
 
               <hr className="my-2" style={{ borderColor: theme.colors.primary[200] }} />
 

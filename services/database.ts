@@ -481,7 +481,6 @@ export class DatabaseService {
       .from('products')
       .select('*')
       .not('promotional_price', 'is', null)
-      .lt('promotional_price', 'price')
       .eq('is_active', true);
 
     if (productsError) {
@@ -489,7 +488,16 @@ export class DatabaseService {
       return [];
     }
 
-    return products?.map(product => this.mapProduct(product)) || [];
+    // Filter in JavaScript to ensure numeric comparison works correctly
+    const promotionalProducts = (products || []).filter(product => {
+      const promoPrice = Number(product.promotional_price);
+      const regularPrice = Number(product.price);
+      return promoPrice > 0 && promoPrice < regularPrice;
+    });
+
+    console.log(`Found ${promotionalProducts.length} promotional products out of ${products?.length || 0} total products with promotional_price`);
+    
+    return promotionalProducts.map(product => this.mapProduct(product));
   }
 
   async getPromotionalCategories(): Promise<Category[]> {
