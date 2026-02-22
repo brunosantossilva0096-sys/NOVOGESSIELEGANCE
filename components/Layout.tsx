@@ -726,7 +726,7 @@ export const Layout: React.FC<LayoutProps> = ({
               © {new Date().getFullYear()} {storeName}. Todos os direitos reservados.
             </p>
             <p className="text-sm" style={{ color: theme.colors.neutral[400] }}>
-              Desenvolvido por{' '}
+              Desenvolvido by{' '}
               <a 
                 href="https://wa.me/55898970019366" 
                 target="_blank" 
