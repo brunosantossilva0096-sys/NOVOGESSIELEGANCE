@@ -2,7 +2,6 @@ import React, { useState, useEffect, createContext, useContext } from 'react';
 import { Layout } from './components/Layout';
 import { Storefront } from './components/Storefront';
 import { AdminDashboard } from './components/AdminDashboard';
-import { Checkout } from './components/Checkout';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { ForgotPassword } from './components/ForgotPassword';
@@ -10,7 +9,6 @@ import { UserProfile } from './components/UserProfile';
 import { Cart } from './components/Cart';
 import { PDV } from './components/PDV';
 import { Promotions } from './components/Promotions';
-import OrderTracking from './components/OrderTracking';
 import { db, auth, cartService, initializeServices } from './services';
 import type { CartItem, Product, User, Category, StoreConfig } from './types';
 import { Loader2 } from 'lucide-react';
@@ -45,7 +43,7 @@ export const useApp = () => {
 };
 
 // View types
-type ViewType = 'store' | 'admin' | 'profile' | 'cart' | 'checkout' | 'login' | 'register' | 'forgot-password' | 'pdv' | 'order-tracking' | 'promotions';
+type ViewType = 'store' | 'admin' | 'profile' | 'cart' | 'login' | 'register' | 'forgot-password' | 'pdv' | 'promotions';
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewType>('store');
@@ -54,7 +52,6 @@ const App: React.FC = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
-  const [shippingCost, setShippingCost] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [promotionalProductsCount, setPromotionalProductsCount] = useState(0);
   const [promotionalCategoriesCount, setPromotionalCategoriesCount] = useState(0);
@@ -178,33 +175,27 @@ const App: React.FC = () => {
   const goToRegister = () => setView('register');
   const goToForgotPassword = () => setView('forgot-password');
   const goToStore = () => setView('store');
-  const goToPromotions = () => setView('promotions');
   const goToCart = () => setView('cart');
-  
+
   // Navigate to category - scrolls to catalog and filters products
   const goToCategory = (categoryId: string | null) => {
     setSelectedCategoryId(categoryId);
     if (view !== 'store') {
       setView('store');
       setTimeout(() => {
-        setScrollToSection('catalogo');
+        const element = document.getElementById('catalogo');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
       }, 150);
     } else {
-      setScrollToSection('catalogo');
+      const element = document.getElementById('catalogo');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
   };
-  
-  const goToCheckout = (shippingValue: number = 0) => {
-    if (!user) {
-      setView('login');
-      return;
-    }
-    if (cart.length === 0) {
-      return;
-    }
-    setShippingCost(shippingValue);
-    setView('checkout');
-  };
+
   const goToProfile = () => {
     if (!user) {
       setView('login');
@@ -245,14 +236,8 @@ const App: React.FC = () => {
       case 'promotions':
         return (
           <Promotions
-            onProductSelect={(product) => {
-              // Navigate to store with product selected or add to cart
-              goToStore();
-            }}
-            onCategorySelect={(category) => {
-              // Navigate to store with category filtered
-              goToStore();
-            }}
+            onProductSelect={() => goToStore()}
+            onCategorySelect={() => goToStore()}
             onAddToCart={addToCart}
           />
         );
@@ -286,13 +271,12 @@ const App: React.FC = () => {
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             scrollToSection={scrollToSection}
-            onScrollComplete={() => setScrollToSection(null)}
+            onScrollComplete={() => { }}
             selectedCategoryId={selectedCategoryId}
           />
         );
 
       case 'pdv':
-        console.log('Rendering PDV view, user:', user?.role);
         return user?.role === 'admin' || user?.role === 'employee' ? (
           <PDV onClose={() => setView('store')} currentUser={user} />
         ) : (
@@ -302,7 +286,7 @@ const App: React.FC = () => {
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             scrollToSection={scrollToSection}
-            onScrollComplete={() => setScrollToSection(null)}
+            onScrollComplete={() => { }}
             selectedCategoryId={selectedCategoryId}
           />
         );
@@ -314,42 +298,8 @@ const App: React.FC = () => {
             user={user}
             onUpdateQuantity={updateCartQuantity}
             onRemove={removeFromCart}
-            onCheckout={goToCheckout}
             onContinueShopping={goToStore}
             onClearCart={clearCart}
-          />
-        );
-
-      case 'checkout':
-        return user && cart.length > 0 ? (
-          <Checkout
-            user={user}
-            cart={cart}
-            storeConfig={storeConfig}
-            shippingCost={shippingCost}
-            onSuccess={() => {
-              clearCart();
-              setView('store');
-            }}
-            onBack={goToCart}
-          />
-        ) : (
-          <Cart
-            items={cart}
-            user={user}
-            onUpdateQuantity={updateCartQuantity}
-            onRemove={removeFromCart}
-            onCheckout={goToCheckout}
-            onContinueShopping={goToStore}
-            onClearCart={clearCart}
-          />
-        );
-
-      case 'order-tracking':
-        return (
-          <OrderTracking
-            orderId={''} // Order ID will be passed via URL params in a real implementation
-            onBack={() => setView('store')}
           />
         );
 
@@ -362,7 +312,7 @@ const App: React.FC = () => {
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             scrollToSection={scrollToSection}
-            onScrollComplete={() => setScrollToSection(null)}
+            onScrollComplete={() => { }}
             selectedCategoryId={selectedCategoryId}
           />
         );
@@ -419,10 +369,16 @@ const App: React.FC = () => {
           if (view !== 'store') {
             setView('store');
             setTimeout(() => {
-              setScrollToSection('catalogo');
+              const element = document.getElementById('catalogo');
+              if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
             }, 150);
           } else {
-            setScrollToSection('catalogo');
+            const element = document.getElementById('catalogo');
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
           }
         }}
         promotionalProductsCount={promotionalProductsCount}

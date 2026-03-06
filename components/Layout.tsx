@@ -11,7 +11,7 @@ interface LayoutProps {
   categories: Category[];
   storeConfig: StoreConfig | null;
   onLogout: () => void;
-  onViewChange: (view: 'store' | 'admin' | 'profile' | 'cart' | 'checkout' | 'login' | 'register' | 'forgot-password' | 'pdv' | 'promotions') => void;
+  onViewChange: (view: 'store' | 'admin' | 'profile' | 'cart' | 'login' | 'register' | 'forgot-password' | 'pdv' | 'promotions') => void;
   currentView: string;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
@@ -133,7 +133,7 @@ export const Layout: React.FC<LayoutProps> = ({
                 >
                   Promoções
                   {promotionalProductsCount > 0 && (
-                    <span 
+                    <span
                       className="ml-1 px-2 py-0.5 text-xs font-bold rounded-full text-white"
                       style={{ background: `linear-gradient(135deg, #ef4444 0%, #dc2626 100%)` }}
                     >
@@ -162,7 +162,7 @@ export const Layout: React.FC<LayoutProps> = ({
                   >
                     Categorias
                     {promotionalCategoriesCount > 0 && (
-                      <span 
+                      <span
                         className="ml-1 px-2 py-0.5 text-xs font-bold rounded-full text-white"
                         style={{ background: `linear-gradient(135deg, #f59e0b 0%, #d97706 100%)` }}
                       >
@@ -184,9 +184,9 @@ export const Layout: React.FC<LayoutProps> = ({
                       {/* All Categories Option */}
                       <button
                         key="all"
-                        onClick={() => { 
+                        onClick={() => {
                           onCategoryClick?.(null);
-                          setShowCategories(false); 
+                          setShowCategories(false);
                         }}
                         className="block w-full text-left px-4 py-3 text-sm font-medium transition-all hover:pl-6 flex items-center justify-between gap-2"
                         style={{ color: theme.colors.primary[600] }}
@@ -199,17 +199,17 @@ export const Layout: React.FC<LayoutProps> = ({
                       >
                         <span>Todas as Categorias</span>
                       </button>
-                      
+
                       <div style={{ height: '1px', backgroundColor: theme.colors.primary[200], margin: '4px 0' }} />
-                      
+
                       {categories.map((cat) => {
                         const hasPromo = promotionalCategoryIds.has(cat.id);
                         return (
                           <button
                             key={cat.id}
-                            onClick={() => { 
+                            onClick={() => {
                               onCategoryClick?.(cat.id);
-                              setShowCategories(false); 
+                              setShowCategories(false);
                             }}
                             className="block w-full text-left px-4 py-3 text-sm transition-all hover:pl-6 flex items-center justify-between gap-2"
                             style={{ color: theme.colors.neutral[700] }}
@@ -224,7 +224,7 @@ export const Layout: React.FC<LayoutProps> = ({
                           >
                             <span>{cat.name}</span>
                             {hasPromo && (
-                              <span 
+                              <span
                                 className="px-2 py-0.5 text-[10px] font-bold rounded-full text-white flex items-center gap-1"
                                 style={{ background: `linear-gradient(135deg, #ef4444 0%, #dc2626 100%)` }}
                               >
@@ -538,7 +538,7 @@ export const Layout: React.FC<LayoutProps> = ({
                 <Percent className="w-5 h-5" style={{ color: '#ef4444' }} />
                 <span>Promoções</span>
                 {promotionalProductsCount > 0 && (
-                  <span 
+                  <span
                     className="ml-auto px-2 py-0.5 text-xs font-bold rounded-full text-white"
                     style={{ background: `linear-gradient(135deg, #ef4444 0%, #dc2626 100%)` }}
                   >
@@ -558,7 +558,7 @@ export const Layout: React.FC<LayoutProps> = ({
                   >
                     <span>{cat.name}</span>
                     {hasPromo && (
-                      <span 
+                      <span
                         className="px-2 py-0.5 text-[10px] font-bold rounded-full text-white flex items-center gap-1"
                         style={{ background: `linear-gradient(135deg, #ef4444 0%, #dc2626 100%)` }}
                       >
@@ -727,9 +727,9 @@ export const Layout: React.FC<LayoutProps> = ({
             </p>
             <p className="text-sm" style={{ color: theme.colors.neutral[400] }}>
               Desenvolvido by{' '}
-              <a 
-                href="https://wa.me/55898970019366" 
-                target="_blank" 
+              <a
+                href="https://wa.me/55898970019366"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="font-medium hover:underline"
                 style={{ color: theme.colors.primary[400] }}

@@ -51,22 +51,22 @@ const formatOrderMessage = (
     'BOLETO': 'Boleto'
   };
 
-  const message = `*${'🛍️'} Gessi.Elegance - Novo Pedido*
+  const message = `*Gessi.Elegance - Novo Pedido*
 
 *Pedido #${order.orderNumber}*
 
-*📦 DETALHES DO PEDIDO*
+*DETALHES DO PEDIDO*
 ${items}
 
-*👤 DADOS DO CLIENTE*
+*DADOS DO CLIENTE*
 Nome: ${order.userName}
 Telefone: ${order.userPhone || 'Não informado'}
 
-*🚚 DETALHES DA ENTREGA*
+*DETALHES DA ENTREGA*
 Forma: ${isRetirada ? 'Retirada' : 'Entrega'}
 ${isRetirada ? '' : `Endereço: ${order.shippingAddress.street}, ${order.shippingAddress.number}`}
 
-*💰 VALORES E PAGAMENTO*
+*VALORES E PAGAMENTO*
 ${order.items.length} ${order.items.length === 1 ? 'item' : 'itens'}
 Forma de pagamento: ${paymentMethodMap[order.paymentMethod] || order.paymentMethod}
 Total: *${formatCurrency(order.total)}*
@@ -118,14 +118,14 @@ export const sendOrderNotification = (order: Order, isRetirada: boolean = true):
 export const sendCustomerNotification = (order: Order, customerPhone: string): void => {
   const trackingLink = generateOrderTrackingLink(order.id);
 
-  const message = `*${'🛍️'} Gessi.Elegance*
+  const message = `*Gessi.Elegance*
 
 Olá ${order.userName}! Recebemos seu pedido #${order.orderNumber}.
 
 Você pode acompanhar seu pedido aqui:
 ${trackingLink}
 
-Obrigada por comprar conosco! 💕
+Obrigada por comprar conosco!
 
 ---
 Gessi.Elegance
